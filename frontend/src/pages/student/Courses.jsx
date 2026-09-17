@@ -1,4 +1,4 @@
-
+import API_URL from "../../api";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -22,7 +22,7 @@ function Courses() {
                 await Promise.all([
 
                     fetch(
-                        "http://localhost:5000/api/courses",
+                        `${API_URL}/api/courses`,
                         {
                             headers: {
                                 Authorization: `Bearer ${token}`
@@ -31,7 +31,7 @@ function Courses() {
                     ),
 
                     fetch(
-                        "http://localhost:5000/api/enrollments/my",
+                        `${API_URL}/api/enrollments/my`,
                         {
                             headers: {
                                 Authorization: `Bearer ${token}`

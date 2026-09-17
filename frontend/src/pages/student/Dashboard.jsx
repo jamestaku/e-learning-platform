@@ -1,3 +1,4 @@
+import API_URL from "../../api";
 import { useEffect, useState } from "react";
 
 function Dashboard() {
@@ -29,7 +30,7 @@ function Dashboard() {
             try {
 
                 const response = await fetch(
-                    "http://localhost:5000/api/dashboard/student",
+                    `${API_URL}/api/dashboard/student`,
                     {
                         headers: {
                             Authorization: `Bearer ${token}`

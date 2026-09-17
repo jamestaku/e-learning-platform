@@ -1,3 +1,4 @@
+import API_URL from "../../api";
 import { useEffect, useState } from "react";
 
 function Grades() {
@@ -8,7 +9,7 @@ function Grades() {
     const fetchGrades = async () => {
         try {
             const response = await fetch(
-                "http://localhost:5000/api/submissions/grades",
+                `${API_URL}/api/submissions/grades`,
                 {
                     headers: {
                         Authorization:

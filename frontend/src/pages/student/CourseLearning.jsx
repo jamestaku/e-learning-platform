@@ -1,4 +1,4 @@
-
+import API_URL from "../../api";  
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
@@ -32,7 +32,7 @@ function CourseLearning() {
             try {
 
                 const response = await fetch(
-                    `http://localhost:5000/api/lessons/student/course/${courseId}`,
+                    `${API_URL}/api/lessons/student/course/${courseId}`,
                     {
                         headers: {
                             Authorization: `Bearer ${token}`
@@ -95,7 +95,7 @@ function CourseLearning() {
             try {
 
                 const response = await fetch(
-                    `http://localhost:5000/api/materials/course/${courseId}`,
+                    `${API_URL}/api/materials/course/${courseId}`,
                     {
                         headers: {
                             Authorization: `Bearer ${token}`
@@ -146,7 +146,7 @@ function CourseLearning() {
             try {
 
                 const response = await fetch(
-                    `http://localhost:5000/api/progress/course/${courseId}`,
+                    `${API_URL}/api/progress/course/${courseId}`,
                     {
                         headers: {
                             Authorization: `Bearer ${token}`
@@ -196,7 +196,7 @@ function CourseLearning() {
         try {
 
             const response = await fetch(
-                "http://localhost:5000/api/progress/complete",
+                `${API_URL}/api/progress/complete`,
                 {
                     method: "POST",
 

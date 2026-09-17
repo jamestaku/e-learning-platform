@@ -1,3 +1,4 @@
+import API_URL from "../../api";
 import { useEffect, useState } from "react";
 
 function Assignments() {
@@ -25,7 +26,7 @@ const fetchCourses = async () => {
     try {
 
         const response = await fetch(
-            "http://localhost:5000/api/enrollments/my",
+            `${API_URL}/api/enrollments/my`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -155,7 +156,7 @@ const fetchSubmissions = async () => {
     try {
 
         const response = await fetch(
-            "http://localhost:5000/api/submissions/my",
+            `${API_URL}/api/submissions/my`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`

@@ -1,3 +1,4 @@
+import API_URL from "../../api";
 import { useEffect, useState } from "react";
 
 function Messages() {
@@ -28,7 +29,7 @@ function Messages() {
     const fetchInbox = async () => {
         try {
             const response = await fetch(
-                "http://localhost:5000/api/messages/inbox",
+                `${API_URL}/api/messages/inbox`,
                 {
                     headers: {
                         Authorization: "Bearer " + token
@@ -53,7 +54,7 @@ function Messages() {
     const fetchSent = async () => {
         try {
             const response = await fetch(
-                "http://localhost:5000/api/messages/sent",
+                `${API_URL}/api/messages/sent`,
                 {
                     headers: {
                         Authorization: "Bearer " + token

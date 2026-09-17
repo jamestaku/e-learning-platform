@@ -1,3 +1,4 @@
+import API_URL from "../../api";
 import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 
@@ -129,7 +130,7 @@ function AdminSettings() {
                 localStorage.getItem("token");
 
             const response = await fetch(
-                "http://localhost:5000/api/users/change-password",
+                `${API_URL}/api/users/change-password`,
                 {
                     method: "PUT",
 

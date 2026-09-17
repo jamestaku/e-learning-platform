@@ -1,3 +1,4 @@
+import API_URL from "../../api";
 import { useEffect, useState } from "react";
 
 function Users() {
@@ -29,7 +30,7 @@ function Users() {
             setError("");
 
             const response = await fetch(
-                "http://localhost:5000/api/users/admin/all",
+                `${API_URL}/api/users/admin/all`,
                 {
                     method: "GET",
                     headers: {
@@ -98,7 +99,7 @@ function Users() {
         try {
 
             const response = await fetch(
-                `http://localhost:5000/api/users/admin/${userId}/status`,
+                `${API_URL}/api/users/admin/${userId}/status`,
                 {
                     method: "PUT",
 

@@ -1,4 +1,4 @@
-
+import API_URL from "../../api";
 import { useEffect, useState } from "react";
 
 function Messages() {
@@ -30,7 +30,7 @@ function Messages() {
     const fetchInbox = async () => {
         try {
             const response = await fetch(
-                "http://localhost:5000/api/messages/inbox",
+                `${API_URL}/api/messages/inbox`,
                 {
                     headers: {
                         Authorization: "Bearer " + token
@@ -55,7 +55,7 @@ function Messages() {
     const fetchSent = async () => {
         try {
             const response = await fetch(
-                "http://localhost:5000/api/messages/sent",
+                `${API_URL}/api/messages/sent`,
                 {
                     headers: {
                         Authorization: "Bearer " + token
@@ -83,7 +83,7 @@ function Messages() {
     const fetchStudents = async () => {
         try {
             const response = await fetch(
-                "http://localhost:5000/api/users/students",
+                `${API_URL}/api/users/students`,
                 {
                     headers: {
                         Authorization: "Bearer " + token
@@ -121,7 +121,7 @@ function Messages() {
     const openMessage = async (messageId) => {
         try {
             const response = await fetch(
-                `http://localhost:5000/api/messages/${messageId}`,
+                `${API_URL}/api/messages/${messageId}`,
                 {
                     headers: {
                         Authorization: "Bearer " + token
@@ -207,7 +207,7 @@ function Messages() {
 
         try {
             const response = await fetch(
-                "http://localhost:5000/api/messages",
+                `${API_URL}/api/messages`,
                 {
                     method: "POST",
 

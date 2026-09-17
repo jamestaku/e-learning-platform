@@ -1,4 +1,4 @@
-
+import API_URL from "../../api";
 import { useEffect, useState } from "react";
 
 function TeacherNotifications() {
@@ -21,7 +21,7 @@ function TeacherNotifications() {
             setError("");
 
             const response = await fetch(
-                "http://localhost:5000/api/notifications",
+                `${API_URL}/api/notifications`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -72,7 +72,7 @@ function TeacherNotifications() {
         try {
 
             const response = await fetch(
-                `http://localhost:5000/api/notifications/${notificationId}/read`,
+                `${API_URL}/api/notifications/${notificationId}/read`,
                 {
                     method: "PUT",
 
@@ -124,7 +124,7 @@ function TeacherNotifications() {
         try {
 
             const response = await fetch(
-                "http://localhost:5000/api/notifications/read-all",
+                `${API_URL}/api/notifications/read-all`,
                 {
                     method: "PUT",
 

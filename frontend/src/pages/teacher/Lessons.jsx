@@ -1,4 +1,4 @@
-
+import API_URL from "../../api";
 import { useEffect, useState } from "react";
 
 function Lessons() {
@@ -33,7 +33,7 @@ function Lessons() {
     const fetchCourses = async () => {
         try {
             const response = await fetch(
-                "http://localhost:5000/api/courses/my",
+                `${API_URL}/api/courses/my`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -75,7 +75,7 @@ function Lessons() {
 
         try {
             const response = await fetch(
-                `http://localhost:5000/api/lessons/course/${courseId}`,
+                `${API_URL}/api/lessons/course/${courseId}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -111,7 +111,7 @@ function Lessons() {
 
         try {
             const response = await fetch(
-                `http://localhost:5000/api/materials/course/${courseId}`,
+                `${API_URL}/api/materials/course/${courseId}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -240,7 +240,7 @@ function Lessons() {
 
             try {
                 const response = await fetch(
-                    `http://localhost:5000/api/lessons/${editingLessonId}`,
+                    `${API_URL}/api/lessons/${editingLessonId}`,
                     {
                         method: "PUT",
                         headers: {
@@ -296,7 +296,7 @@ function Lessons() {
 
         try {
             const response = await fetch(
-                "http://localhost:5000/api/lessons",
+                `${API_URL}/api/lessons`,
                 {
                     method: "POST",
                     headers: {

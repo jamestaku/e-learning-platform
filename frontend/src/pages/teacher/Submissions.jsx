@@ -1,3 +1,4 @@
+import API_URL from "../../api";
 import { useEffect, useState } from "react";
 
 function Submissions() {
@@ -11,7 +12,7 @@ function Submissions() {
     const fetchSubmissions = async () => {
         try {
             const response = await fetch(
-                "http://localhost:5000/api/submissions/teacher",
+                `${API_URL}/api/submissions/teacher`,
                 {
                     headers: {
                         Authorization:
@@ -89,7 +90,7 @@ function Submissions() {
 
         try {
             const response = await fetch(
-                `http://localhost:5000/api/submissions/${submissionId}/grade`,
+                `${API_URL}/api/submissions/${submissionId}/grade`,
                 {
                     method: "PUT",
                     headers: {
@@ -213,7 +214,7 @@ function Submissions() {
 
                                 <div className="submission-file">
                                     <a
-                                        href={`http://localhost:5000/uploads/${submission.submission_file}`}
+                                        href={`${API_URL}/uploads/${submission.submission_file}`}
                                         target="_blank"
                                         rel="noreferrer"
                                         className="teacher-submission-pdf"

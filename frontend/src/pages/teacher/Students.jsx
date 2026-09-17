@@ -1,3 +1,4 @@
+import API_URL from "../../api";
 import { useEffect, useState } from "react";
 
 function Students() {
@@ -22,7 +23,7 @@ function Students() {
             setError("");
 
             const response = await fetch(
-                "http://localhost:5000/api/users/students",
+                `${API_URL}/api/users/students`,
                 {
                     headers: {
                         Authorization:
@@ -87,7 +88,7 @@ function Students() {
             setSuccess("");
 
             const response = await fetch(
-                `http://localhost:5000/api/users/students/${studentId}/status`,
+                `${API_URL}/api/users/students/${studentId}/status`,
                 {
                     method: "PUT",
 

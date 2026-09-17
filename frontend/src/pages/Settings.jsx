@@ -70,7 +70,7 @@ function Settings() {
         try {
 
             const response = await fetch(
-                "http://localhost:5000/api/users/change-password",
+                `${API_URL}/api/users/change-password`,
                 {
                     method: "PUT",
 

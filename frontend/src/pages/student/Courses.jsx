@@ -124,7 +124,7 @@ function Courses() {
         try {
 
             const response = await fetch(
-                "http://localhost:5000/api/enrollments",
+                `${API_URL}/api/enrollments`,
                 {
                     method: "POST",
 

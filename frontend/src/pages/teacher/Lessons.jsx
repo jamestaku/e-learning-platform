@@ -362,7 +362,7 @@ function Lessons() {
             setMessage("Deleting lesson...");
 
             const response = await fetch(
-                `http://localhost:5000/api/lessons/${lesson.id}`,
+                `${API_URL}/api/lessons/${lesson.id}`,
                 {
                     method: "DELETE",
                     headers: {
@@ -462,7 +462,7 @@ function Lessons() {
             }
 
             const response = await fetch(
-                "http://localhost:5000/api/materials",
+                `${API_URL}/api/materials`,
                 {
                     method: "POST",
                     headers: {
@@ -529,7 +529,7 @@ function Lessons() {
         try {
 
             const response = await fetch(
-                `http://localhost:5000/api/materials/${materialId}`,
+                `${API_URL}/api/materials/${materialId}`,
                 {
                     method: "DELETE",
                     headers: {
@@ -1277,7 +1277,7 @@ function Lessons() {
                                 >
 
                                     <a
-                                        href={`http://localhost:5000/uploads/${material.file_name}`}
+                                        href={`${API_URL}/uploads/${material.file_name}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="create-lesson-btn"

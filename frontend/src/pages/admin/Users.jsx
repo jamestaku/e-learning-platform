@@ -165,7 +165,7 @@ function Users() {
         try {
 
             const response = await fetch(
-                `http://localhost:5000/api/users/admin/${userId}`,
+                `${API_URL}/api/users/admin/${userId}`,
                 {
                     method: "DELETE",
 

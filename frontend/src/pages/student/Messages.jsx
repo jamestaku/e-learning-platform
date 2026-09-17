@@ -79,7 +79,7 @@ function Messages() {
     const fetchTeachers = async () => {
         try {
             const response = await fetch(
-                "http://localhost:5000/api/users/teachers",
+                `${API_URL}/api/users/teachers`,
                 {
                     headers: {
                         Authorization: "Bearer " + token
@@ -114,7 +114,7 @@ function Messages() {
     const openMessage = async (messageId) => {
         try {
             const response = await fetch(
-                `http://localhost:5000/api/messages/${messageId}`,
+                `${API_URL}/api/messages/${messageId}`,
                 {
                     headers: {
                         Authorization: "Bearer " + token
@@ -159,7 +159,7 @@ function Messages() {
 
         try {
             const response = await fetch(
-                "http://localhost:5000/api/messages",
+                `${API_URL}/api/messages`,
                 {
                     method: "POST",
 

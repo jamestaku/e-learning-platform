@@ -221,7 +221,7 @@ function Assignments() {
 
 
             const response = await fetch(
-                "http://localhost:5000/api/assignments",
+                `${API_URL}/api/assignments`,
                 {
                     method: "POST",
 
@@ -665,7 +665,7 @@ function Assignments() {
                                         {assignment.pdf_file && (
 
                                             <a
-                                                href={`http://localhost:5000/uploads/${assignment.pdf_file}`}
+                                                href={`${API_URL}/uploads/${assignment.pdf_file}`}
                                                 target="_blank"
                                                 rel="noreferrer"
                                                 className="assignment-pdf-link"

@@ -912,7 +912,7 @@ function CourseLearning() {
 
 
                                     <a
-                                        href={`http://localhost:5000/uploads/${material.file_name}`}
+                                        href={`${API_URL}/uploads/${material.file_name}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="create-course-btn"
@@ -1194,7 +1194,7 @@ function CourseLearning() {
 
 
                                                         <a
-                                                            href={`http://localhost:5000/uploads/${material.file_name}`}
+                                                            href={`${API_URL}/uploads/${material.file_name}`}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                             className="create-course-btn"

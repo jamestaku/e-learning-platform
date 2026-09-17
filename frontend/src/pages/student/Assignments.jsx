@@ -78,7 +78,7 @@ const fetchAssignments = async (enrolledCourses) => {
         for (const course of enrolledCourses) {
 
             const response = await fetch(
-                `http://localhost:5000/api/assignments/course/${course.course_id}`,
+                `${API_URL}/api/assignments/course/${course.course_id}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -377,7 +377,7 @@ const handleSubmit = async (
 
 
         const response = await fetch(
-            "http://localhost:5000/api/submissions",
+            `${API_URL}/api/submissions`,
             {
                 method: "POST",
 
@@ -715,7 +715,7 @@ return (
                                     {assignment.pdf_file && (
 
                                         <a
-                                            href={`http://localhost:5000/uploads/${assignment.pdf_file}`}
+                                            href={`${API_URL}/uploads/${assignment.pdf_file}`}
                                             target="_blank"
                                             rel="noreferrer"
                                             className="student-assignment-pdf"

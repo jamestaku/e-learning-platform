@@ -60,7 +60,7 @@ function Notifications() {
     const markAsRead = async (id) => {
         try {
             const response = await fetch(
-                `http://localhost:5000/api/notifications/${id}/read`,
+                `${API_URL}/api/notifications/${id}/read`,
                 {
                     method: "PUT",
                     headers: {
@@ -100,7 +100,7 @@ function Notifications() {
     const markAllAsRead = async () => {
         try {
             const response = await fetch(
-                "http://localhost:5000/api/notifications/read-all",
+                `${API_URL}/api/notifications/read-all`,
                 {
                     method: "PUT",
                     headers: {

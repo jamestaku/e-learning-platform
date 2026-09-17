@@ -1,4 +1,4 @@
-
+import API_URL from "../api";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
@@ -27,7 +27,7 @@ function StudentLayout() {
             }
 
             const response = await fetch(
-                "http://localhost:5000/api/notifications/unread/count",
+                `${API_URL}/api/notifications/unread/count`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`

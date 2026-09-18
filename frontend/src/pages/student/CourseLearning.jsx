@@ -1,4 +1,5 @@
-import API_URL from "../../api";  
+
+import API_URL from "../../api";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
@@ -766,6 +767,7 @@ function CourseLearning() {
                             }}
                         >
                             🎉 Course Completed!
+
                             <div
                                 style={{
                                     fontSize: "13px",
@@ -777,6 +779,7 @@ function CourseLearning() {
                                 completed all the lessons
                                 in this course.
                             </div>
+
                         </div>
 
                     )}
@@ -911,8 +914,10 @@ function CourseLearning() {
                                     </div>
 
 
+                                    {/* SUPABASE STORAGE DOWNLOAD */}
+
                                     <a
-                                        href={`${API_URL}/uploads/${material.file_name}`}
+                                        href={material.file_url}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="create-course-btn"
@@ -1118,7 +1123,8 @@ function CourseLearning() {
                                                                 "center",
                                                             justifyContent:
                                                                 "space-between",
-                                                            gap: "15px",
+                                                            gap:
+                                                                "15px",
                                                             padding:
                                                                 "16px",
                                                             border:
@@ -1193,8 +1199,10 @@ function CourseLearning() {
                                                         </div>
 
 
+                                                        {/* SUPABASE STORAGE DOWNLOAD */}
+
                                                         <a
-                                                            href={`${API_URL}/uploads/${material.file_name}`}
+                                                            href={material.file_url}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                             className="create-course-btn"

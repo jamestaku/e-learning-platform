@@ -1276,18 +1276,18 @@ function Lessons() {
                                     }}
                                 >
 
-                                    <a
-                                        href={`${API_URL}/uploads/${material.file_name}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="create-lesson-btn"
-                                        style={{
-                                            textDecoration: "none",
-                                            padding: "8px 12px"
-                                        }}
-                                    >
-                                        View
-                                    </a>
+                                   <a
+    href={material.file_url}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="create-lesson-btn"
+    style={{
+        textDecoration: "none",
+        padding: "8px 12px"
+    }}
+>
+    View
+</a>
 
 
                                     <button

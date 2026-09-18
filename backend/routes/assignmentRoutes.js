@@ -1,40 +1,61 @@
-
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const path = require("path");
 
 const pool = require("../config/db");
+const supabase = require("../config/supabase");
+
 const authenticateToken = require("../middleware/authMiddleware");
 const requireRole = require("../middleware/roleMiddleware");
 
 
 // ==========================================
-// PDF UPLOAD CONFIGURATION
+// SUPABASE STORAGE
 // ==========================================
 
-const storage = multer.diskStorage({
+const BUCKET_NAME = "assignment-pdfs";
 
-    destination: (req, file, cb) => {
 
-        cb(null, "uploads/");
+// ==========================================
+// FILE UPLOAD CONFIGURATION
+// ==========================================
 
-    },
+const storage = multer.memoryStorage();
 
-    filename: (req, file, cb) => {
+const allowedExtensions = [
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".xls",
+    ".xlsx",
+    ".mdb",
+    ".accdb",
+    ".ppt",
+    ".pptx"
+];
 
-        const uniqueName =
-            Date.now() +
-            "-" +
-            Math.round(Math.random() * 1E9) +
-            path.extname(file.originalname);
+const allowedMimeTypes = [
+    // PDF
+    "application/pdf",
 
-        cb(null, uniqueName);
+    // Word
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 
-    }
+    // Excel
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 
-});
+    // Microsoft Access
+    "application/x-msaccess",
+    "application/vnd.ms-access",
+    "application/msaccess",
 
+    // PowerPoint
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+];
 
 const upload = multer({
 
@@ -42,14 +63,26 @@ const upload = multer({
 
     fileFilter: (req, file, cb) => {
 
-        if (file.mimetype === "application/pdf") {
+        const extension = path
+            .extname(file.originalname)
+            .toLowerCase();
+
+        const extensionAllowed =
+            allowedExtensions.includes(extension);
+
+        const mimeAllowed =
+            allowedMimeTypes.includes(file.mimetype);
+
+        if (extensionAllowed && mimeAllowed) {
 
             cb(null, true);
 
         } else {
 
             cb(
-                new Error("Only PDF files are allowed"),
+                new Error(
+                    "Only PDF, Word, Excel, Access and PowerPoint files are allowed."
+                ),
                 false
             );
 
@@ -65,6 +98,62 @@ const upload = multer({
 
 
 // ==========================================
+// CREATE UNIQUE STORAGE FILE NAME
+// ==========================================
+
+const createStoragePath = (file) => {
+
+    const extension =
+        path.extname(file.originalname).toLowerCase();
+
+    const uniqueName =
+        Date.now() +
+        "-" +
+        Math.round(Math.random() * 1E9) +
+        extension;
+
+    return uniqueName;
+
+};
+
+
+// ==========================================
+// CREATE SIGNED URL
+// ==========================================
+
+const createSignedUrl = async (fileName) => {
+
+    if (!fileName) {
+
+        return null;
+
+    }
+
+    const { data, error } = await supabase
+        .storage
+        .from(BUCKET_NAME)
+        .createSignedUrl(
+            fileName,
+            60 * 60
+        );
+
+    if (error) {
+
+        console.error(
+            "Create assignment signed URL error:",
+            error
+        );
+
+        return null;
+
+    }
+
+    return data.signedUrl;
+
+};
+
+
+// ==========================================
 // CREATE ASSIGNMENT
 // POST /api/assignments
 // ==========================================
@@ -76,6 +165,8 @@ router.post(
     upload.single("pdf"),
     async (req, res) => {
 
+        let uploadedStoragePath = null;
+
         try {
 
             const {
@@ -86,7 +177,10 @@ router.post(
             } = req.body;
 
 
-            // Validate required fields
+            // ==========================================
+            // VALIDATE REQUIRED FIELDS
+            // ==========================================
+
             if (!course_id || !title) {
 
                 return res.status(400).json({
@@ -97,7 +191,10 @@ router.post(
             }
 
 
-            // Check that the course belongs to this teacher
+            // ==========================================
+            // CHECK COURSE OWNERSHIP
+            // ==========================================
+
             const course = await pool.query(
                 `SELECT id
                  FROM courses
@@ -120,10 +217,56 @@ router.post(
             }
 
 
-            // Get uploaded PDF filename
-            const pdfFile = req.file
-                ? req.file.filename
-                : null;
+            // ==========================================
+            // UPLOAD ASSIGNMENT FILE TO SUPABASE
+            // ==========================================
+
+            let pdfFile = null;
+
+            if (req.file) {
+
+                uploadedStoragePath =
+                    createStoragePath(req.file);
+
+
+                const {
+                    error: uploadError
+                } = await supabase
+                    .storage
+                    .from(BUCKET_NAME)
+                    .upload(
+                        uploadedStoragePath,
+                        req.file.buffer,
+                        {
+                            // IMPORTANT:
+                            // Use the actual MIME type of the uploaded file
+                            contentType:
+                                req.file.mimetype,
+
+                            upsert: false
+                        }
+                    );
+
+
+                if (uploadError) {
+
+                    console.error(
+                        "Supabase assignment file upload error:",
+                        uploadError
+                    );
+
+                    return res.status(500).json({
+                        message:
+                            "Failed to upload assignment file."
+                    });
+
+                }
+
+
+                pdfFile =
+                    uploadedStoragePath;
+
+            }
 
 
             // ==========================================
@@ -152,14 +295,16 @@ router.post(
 
 
             // ==========================================
-            // CREATE NOTIFICATIONS FOR ENROLLED STUDENTS
+            // CREATE NOTIFICATIONS
             // ==========================================
 
             const enrolledStudents = await pool.query(
                 `SELECT student_id
                  FROM enrollments
                  WHERE course_id = $1`,
-                [course_id]
+                [
+                    course_id
+                ]
             );
 
 
@@ -186,6 +331,19 @@ router.post(
 
 
             // ==========================================
+            // ADD SIGNED URL
+            // ==========================================
+
+            const assignment =
+                result.rows[0];
+
+            assignment.pdf_url =
+                await createSignedUrl(
+                    assignment.pdf_file
+                );
+
+
+            // ==========================================
             // SUCCESS RESPONSE
             // ==========================================
 
@@ -194,8 +352,7 @@ router.post(
                 message:
                     "Assignment created successfully",
 
-                assignment:
-                    result.rows[0]
+                assignment
 
             });
 
@@ -208,22 +365,27 @@ router.post(
             );
 
 
-            // Remove uploaded file if database
-            // operation fails
+            // ==========================================
+            // CLEANUP SUPABASE FILE IF DB OPERATION FAILS
+            // ==========================================
 
-            if (req.file) {
+            if (uploadedStoragePath) {
 
-                const fs = require("fs");
+                try {
 
-                const filePath =
-                    path.join(
-                        "uploads",
-                        req.file.filename
+                    await supabase
+                        .storage
+                        .from(BUCKET_NAME)
+                        .remove([
+                            uploadedStoragePath
+                        ]);
+
+                } catch (storageError) {
+
+                    console.error(
+                        "Assignment file cleanup error:",
+                        storageError
                     );
-
-                if (fs.existsSync(filePath)) {
-
-                    fs.unlinkSync(filePath);
 
                 }
 
@@ -231,9 +393,11 @@ router.post(
 
 
             res.status(500).json({
+
                 message:
                     error.message ||
                     "Internal server error"
+
             });
 
         }
@@ -262,6 +426,7 @@ router.get(
                     assignments.title,
                     assignments.description,
                     assignments.due_date,
+                    assignments.pdf_file,
                     assignments.created_at,
                     courses.title AS course_title
                  FROM assignments
@@ -275,8 +440,28 @@ router.get(
             );
 
 
+            const assignments =
+                await Promise.all(
+                    result.rows.map(
+                        async (assignment) => {
+
+                            return {
+                                ...assignment,
+
+                                pdf_url:
+                                    await createSignedUrl(
+                                        assignment.pdf_file
+                                    )
+
+                            };
+
+                        }
+                    )
+                );
+
+
             res.json({
-                assignments: result.rows
+                assignments
             });
 
 
@@ -289,7 +474,8 @@ router.get(
 
 
             res.status(500).json({
-                message: "Internal server error"
+                message:
+                    "Internal server error"
             });
 
         }
@@ -310,10 +496,13 @@ router.get(
 
         try {
 
-            const { courseId } = req.params;
+            const { courseId } =
+                req.params;
 
 
-            // If teacher, make sure it is their course
+            // ==========================================
+            // TEACHER ACCESS
+            // ==========================================
 
             if (req.user.role === "teacher") {
 
@@ -341,7 +530,9 @@ router.get(
             }
 
 
-            // If student, make sure they are enrolled
+            // ==========================================
+            // STUDENT ACCESS
+            // ==========================================
 
             if (req.user.role === "student") {
 
@@ -369,7 +560,9 @@ router.get(
             }
 
 
-            // Get assignments
+            // ==========================================
+            // GET ASSIGNMENTS
+            // ==========================================
 
             const result = await pool.query(
                 `SELECT
@@ -382,15 +575,36 @@ router.get(
                     created_at
                  FROM assignments
                  WHERE course_id = $1
-                 ORDER BY due_date ASC NULLS LAST, created_at DESC`,
+                 ORDER BY due_date ASC NULLS LAST,
+                          created_at DESC`,
                 [
                     courseId
                 ]
             );
 
 
+            const assignments =
+                await Promise.all(
+                    result.rows.map(
+                        async (assignment) => {
+
+                            return {
+                                ...assignment,
+
+                                pdf_url:
+                                    await createSignedUrl(
+                                        assignment.pdf_file
+                                    )
+
+                            };
+
+                        }
+                    )
+                );
+
+
             res.json({
-                assignments: result.rows
+                assignments
             });
 
 
@@ -403,7 +617,8 @@ router.get(
 
 
             res.status(500).json({
-                message: "Internal server error"
+                message:
+                    "Internal server error"
             });
 
         }
@@ -424,7 +639,8 @@ router.get(
 
         try {
 
-            const { id } = req.params;
+            const { id } =
+                req.params;
 
 
             const result = await pool.query(
@@ -434,6 +650,7 @@ router.get(
                     assignments.title,
                     assignments.description,
                     assignments.due_date,
+                    assignments.pdf_file,
                     assignments.created_at,
                     courses.title AS course_title
                  FROM assignments
@@ -449,7 +666,8 @@ router.get(
             if (result.rows.length === 0) {
 
                 return res.status(404).json({
-                    message: "Assignment not found"
+                    message:
+                        "Assignment not found"
                 });
 
             }
@@ -459,7 +677,9 @@ router.get(
                 result.rows[0];
 
 
-            // Teacher access
+            // ==========================================
+            // TEACHER ACCESS
+            // ==========================================
 
             if (req.user.role === "teacher") {
 
@@ -478,7 +698,8 @@ router.get(
                 if (course.rows.length === 0) {
 
                     return res.status(403).json({
-                        message: "Access denied"
+                        message:
+                            "Access denied"
                     });
 
                 }
@@ -486,7 +707,9 @@ router.get(
             }
 
 
-            // Student access
+            // ==========================================
+            // STUDENT ACCESS
+            // ==========================================
 
             if (req.user.role === "student") {
 
@@ -514,6 +737,16 @@ router.get(
             }
 
 
+            // ==========================================
+            // SIGNED ASSIGNMENT FILE URL
+            // ==========================================
+
+            assignment.pdf_url =
+                await createSignedUrl(
+                    assignment.pdf_file
+                );
+
+
             res.json({
                 assignment
             });
@@ -528,7 +761,8 @@ router.get(
 
 
             res.status(500).json({
-                message: "Internal server error"
+                message:
+                    "Internal server error"
             });
 
         }
@@ -538,4 +772,3 @@ router.get(
 
 
 module.exports = router;
-

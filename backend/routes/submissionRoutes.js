@@ -1,36 +1,39 @@
-
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const path = require("path");
-const fs = require("fs");
 
 const pool = require("../config/db");
+const supabase = require("../config/supabase");
+
 const authenticateToken = require("../middleware/authMiddleware");
 const requireRole = require("../middleware/roleMiddleware");
 
+
 // ==========================================
-// PDF UPLOAD CONFIGURATION
+// SUPABASE STORAGE
 // ==========================================
 
-const storage = multer.diskStorage({
+const BUCKET_NAME = "assignment-submissions";
 
-    destination: (req, file, cb) => {
-        cb(null, "uploads/");
-    },
 
-    filename: (req, file, cb) => {
+// ==========================================
+// FILE UPLOAD CONFIGURATION
+// ==========================================
 
-        const uniqueName =
-            Date.now() +
-            "-" +
-            Math.round(Math.random() * 1E9) +
-            path.extname(file.originalname);
+const storage = multer.memoryStorage();
 
-        cb(null, uniqueName);
-    }
-
-});
+const allowedExtensions = [
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".xls",
+    ".xlsx",
+    ".mdb",
+    ".accdb",
+    ".ppt",
+    ".pptx"
+];
 
 const upload = multer({
 
@@ -38,13 +41,23 @@ const upload = multer({
 
     fileFilter: (req, file, cb) => {
 
-        if (file.mimetype === "application/pdf") {
+        const extension = path
+            .extname(file.originalname)
+            .toLowerCase();
+
+        if (allowedExtensions.includes(extension)) {
+
             cb(null, true);
+
         } else {
+
             cb(
-                new Error("Only PDF files are allowed"),
+                new Error(
+                    "Only PDF, Word, Excel, Access and PowerPoint files are allowed."
+                ),
                 false
             );
+
         }
 
     },
@@ -54,6 +67,63 @@ const upload = multer({
     }
 
 });
+
+
+// ==========================================
+// CREATE UNIQUE STORAGE FILE NAME
+// ==========================================
+
+const createStoragePath = (file) => {
+
+    const extension =
+        path.extname(file.originalname).toLowerCase();
+
+    const uniqueName =
+        Date.now() +
+        "-" +
+        Math.round(Math.random() * 1E9) +
+        extension;
+
+    return uniqueName;
+
+};
+
+
+// ==========================================
+// CREATE SIGNED URL
+// ==========================================
+
+const createSignedUrl = async (fileName) => {
+
+    if (!fileName) {
+
+        return null;
+
+    }
+
+    const { data, error } = await supabase
+        .storage
+        .from(BUCKET_NAME)
+        .createSignedUrl(
+            fileName,
+            60 * 60
+        );
+
+    if (error) {
+
+        console.error(
+            "Create submission signed URL error:",
+            error
+        );
+
+        return null;
+
+    }
+
+    return data.signedUrl;
+
+};
+
 
 // ==========================================
 // SUBMIT ASSIGNMENT
@@ -67,52 +137,77 @@ router.post(
     upload.single("submission"),
     async (req, res) => {
 
+        let uploadedStoragePath = null;
+
         try {
 
             const {
                 assignment_id
             } = req.body;
 
-            // Validate assignment
+
+            // ==========================================
+            // VALIDATE ASSIGNMENT ID
+            // ==========================================
+
             if (!assignment_id) {
 
                 return res.status(400).json({
-                    message: "Assignment ID is required"
+                    message:
+                        "Assignment ID is required"
                 });
 
             }
 
-            // Validate uploaded file
+
+            // ==========================================
+            // VALIDATE FILE
+            // ==========================================
+
             if (!req.file) {
 
                 return res.status(400).json({
-                    message: "Please upload a PDF file"
+                    message:
+                        "Please upload a file"
                 });
 
             }
 
-            // Check that assignment exists
+
+            // ==========================================
+            // CHECK ASSIGNMENT EXISTS
+            // ==========================================
+
             const assignment = await pool.query(
                 `SELECT
                     id,
                     course_id
                  FROM assignments
                  WHERE id = $1`,
-                [assignment_id]
+                [
+                    assignment_id
+                ]
             );
+
 
             if (assignment.rows.length === 0) {
 
                 return res.status(404).json({
-                    message: "Assignment not found"
+                    message:
+                        "Assignment not found"
                 });
 
             }
 
+
             const courseId =
                 assignment.rows[0].course_id;
 
-            // Check that student is enrolled
+
+            // ==========================================
+            // CHECK STUDENT ENROLMENT
+            // ==========================================
+
             const enrollment = await pool.query(
                 `SELECT id
                  FROM enrollments
@@ -124,12 +219,8 @@ router.post(
                 ]
             );
 
-            if (enrollment.rows.length === 0) {
 
-                // Delete uploaded file
-                if (fs.existsSync(req.file.path)) {
-                    fs.unlinkSync(req.file.path);
-                }
+            if (enrollment.rows.length === 0) {
 
                 return res.status(403).json({
                     message:
@@ -138,24 +229,27 @@ router.post(
 
             }
 
-            // Check if student already submitted
-            const existingSubmission = await pool.query(
-                `SELECT id
-                 FROM assignment_submissions
-                 WHERE assignment_id = $1
-                 AND student_id = $2`,
-                [
-                    assignment_id,
-                    req.user.id
-                ]
-            );
 
-            if (existingSubmission.rows.length > 0) {
+            // ==========================================
+            // CHECK EXISTING SUBMISSION
+            // ==========================================
 
-                // Delete newly uploaded file
-                if (fs.existsSync(req.file.path)) {
-                    fs.unlinkSync(req.file.path);
-                }
+            const existingSubmission =
+                await pool.query(
+                    `SELECT id
+                     FROM assignment_submissions
+                     WHERE assignment_id = $1
+                     AND student_id = $2`,
+                    [
+                        assignment_id,
+                        req.user.id
+                    ]
+                );
+
+
+            if (
+                existingSubmission.rows.length > 0
+            ) {
 
                 return res.status(400).json({
                     message:
@@ -164,7 +258,54 @@ router.post(
 
             }
 
-            // Save submission
+
+            // ==========================================
+            // CREATE STORAGE PATH
+            // ==========================================
+
+            uploadedStoragePath =
+                createStoragePath(req.file);
+
+
+            // ==========================================
+            // UPLOAD FILE TO SUPABASE
+            // ==========================================
+
+            const {
+                error: uploadError
+            } = await supabase
+                .storage
+                .from(BUCKET_NAME)
+                .upload(
+                    uploadedStoragePath,
+                    req.file.buffer,
+                    {
+                        contentType:
+                            req.file.mimetype,
+                        upsert: false
+                    }
+                );
+
+
+            if (uploadError) {
+
+                console.error(
+                    "Supabase submission upload error:",
+                    uploadError
+                );
+
+                return res.status(500).json({
+                    message:
+                        "Failed to upload submission file."
+                });
+
+            }
+
+
+            // ==========================================
+            // SAVE SUBMISSION
+            // ==========================================
+
             const result = await pool.query(
                 `INSERT INTO assignment_submissions
                     (
@@ -177,9 +318,10 @@ router.post(
                 [
                     assignment_id,
                     req.user.id,
-                    req.file.filename
+                    uploadedStoragePath
                 ]
             );
+
 
             // ==========================================
             // CREATE TEACHER NOTIFICATION
@@ -187,36 +329,41 @@ router.post(
 
             try {
 
-                // Find the teacher and assignment details
-                const assignmentDetails = await pool.query(
-                    `SELECT
-                        assignments.title AS assignment_title,
-                        courses.teacher_id,
-                        users.full_name AS student_name
-                     FROM assignments
+                const assignmentDetails =
+                    await pool.query(
+                        `SELECT
+                            assignments.title AS assignment_title,
+                            courses.teacher_id,
+                            users.full_name AS student_name
+                         FROM assignments
 
-                     INNER JOIN courses
-                        ON assignments.course_id = courses.id
+                         INNER JOIN courses
+                            ON assignments.course_id =
+                               courses.id
 
-                     INNER JOIN users
-                        ON users.id = $1
+                         INNER JOIN users
+                            ON users.id = $1
 
-                     WHERE assignments.id = $2`,
-                    [
-                        req.user.id,
-                        assignment_id
-                    ]
-                );
+                         WHERE assignments.id = $2`,
+                        [
+                            req.user.id,
+                            assignment_id
+                        ]
+                    );
 
-                if (assignmentDetails.rows.length > 0) {
+
+                if (
+                    assignmentDetails.rows.length > 0
+                ) {
 
                     const {
                         assignment_title,
                         teacher_id,
                         student_name
-                    } = assignmentDetails.rows[0];
+                    } =
+                        assignmentDetails.rows[0];
 
-                    // Create notification for teacher
+
                     await pool.query(
                         `INSERT INTO notifications
                         (
@@ -234,16 +381,17 @@ router.post(
                         ]
                     );
 
+
                     console.log(
                         "Teacher notification created successfully"
                     );
 
                 }
 
-            } catch (notificationError) {
+            } catch (
+                notificationError
+            ) {
 
-                // Notification failure should NOT
-                // prevent the submission from succeeding
                 console.error(
                     "Teacher notification error:",
                     notificationError
@@ -251,8 +399,23 @@ router.post(
 
             }
 
+
             // ==========================================
-            // SEND SUCCESS RESPONSE
+            // ADD SIGNED URL
+            // ==========================================
+
+            const submission =
+                result.rows[0];
+
+
+            submission.file_url =
+                await createSignedUrl(
+                    submission.submission_file
+                );
+
+
+            // ==========================================
+            // SUCCESS RESPONSE
             // ==========================================
 
             res.status(201).json({
@@ -260,10 +423,10 @@ router.post(
                 message:
                     "Assignment submitted successfully",
 
-                submission:
-                    result.rows[0]
+                submission
 
             });
+
 
         } catch (error) {
 
@@ -272,19 +435,42 @@ router.post(
                 error
             );
 
-            // Delete uploaded file if something failed
-            if (req.file) {
 
-                if (fs.existsSync(req.file.path)) {
-                    fs.unlinkSync(req.file.path);
+            // ==========================================
+            // CLEANUP SUPABASE FILE
+            // ==========================================
+
+            if (uploadedStoragePath) {
+
+                try {
+
+                    await supabase
+                        .storage
+                        .from(BUCKET_NAME)
+                        .remove([
+                            uploadedStoragePath
+                        ]);
+
+                } catch (
+                    storageError
+                ) {
+
+                    console.error(
+                        "Submission storage cleanup error:",
+                        storageError
+                    );
+
                 }
 
             }
 
+
             res.status(500).json({
+
                 message:
                     error.message ||
                     "Internal server error"
+
             });
 
         }
@@ -314,8 +500,11 @@ router.get(
                     assignment_submissions.submitted_at,
                     assignment_submissions.marks,
                     assignment_submissions.feedback,
+
                     assignments.title AS assignment_title,
+
                     courses.title AS course_title
+
                  FROM assignment_submissions
 
                  INNER JOIN assignments
@@ -329,12 +518,36 @@ router.get(
                  WHERE assignment_submissions.student_id = $1
 
                  ORDER BY assignment_submissions.submitted_at DESC`,
-                [req.user.id]
+                [
+                    req.user.id
+                ]
             );
 
+
+            const submissions =
+                await Promise.all(
+                    result.rows.map(
+                        async (submission) => {
+
+                            return {
+                                ...submission,
+
+                                file_url:
+                                    await createSignedUrl(
+                                        submission.submission_file
+                                    )
+
+                            };
+
+                        }
+                    )
+                );
+
+
             res.json({
-                submissions: result.rows
+                submissions
             });
+
 
         } catch (error) {
 
@@ -343,8 +556,10 @@ router.get(
                 error
             );
 
+
             res.status(500).json({
-                message: "Internal server error"
+                message:
+                    "Internal server error"
             });
 
         }
@@ -398,12 +613,16 @@ router.get(
                  WHERE assignment_submissions.student_id = $1
 
                  ORDER BY assignment_submissions.submitted_at DESC`,
-                [req.user.id]
+                [
+                    req.user.id
+                ]
             );
+
 
             res.json({
                 grades: result.rows
             });
+
 
         } catch (error) {
 
@@ -412,8 +631,10 @@ router.get(
                 error
             );
 
+
             res.status(500).json({
-                message: "Internal server error"
+                message:
+                    "Internal server error"
             });
 
         }
@@ -475,9 +696,31 @@ router.get(
                 ]
             );
 
+
+            const submissions =
+                await Promise.all(
+                    result.rows.map(
+                        async (submission) => {
+
+                            return {
+                                ...submission,
+
+                                file_url:
+                                    await createSignedUrl(
+                                        submission.submission_file
+                                    )
+
+                            };
+
+                        }
+                    )
+                );
+
+
             res.json({
-                submissions: result.rows
+                submissions
             });
+
 
         } catch (error) {
 
@@ -486,8 +729,10 @@ router.get(
                 error
             );
 
+
             res.status(500).json({
-                message: "Internal server error"
+                message:
+                    "Internal server error"
             });
 
         }
@@ -509,10 +754,19 @@ router.put(
 
         try {
 
-            const submissionId = req.params.id;
-            const { marks, feedback } = req.body;
+            const submissionId =
+                req.params.id;
 
-            // Validate marks
+            const {
+                marks,
+                feedback
+            } = req.body;
+
+
+            // ==========================================
+            // VALIDATE MARKS
+            // ==========================================
+
             if (
                 marks === undefined ||
                 marks === null ||
@@ -520,12 +774,16 @@ router.put(
             ) {
 
                 return res.status(400).json({
-                    message: "Marks are required"
+                    message:
+                        "Marks are required"
                 });
 
             }
 
-            const numericMarks = Number(marks);
+
+            const numericMarks =
+                Number(marks);
+
 
             if (
                 isNaN(numericMarks) ||
@@ -540,33 +798,45 @@ router.put(
 
             }
 
-            // Check that the submission belongs
-            // to one of the teacher's courses
-            const checkResult = await pool.query(
-                `SELECT
-                    assignment_submissions.id,
-                    courses.teacher_id
-                 FROM assignment_submissions
 
-                 INNER JOIN assignments
-                    ON assignment_submissions.assignment_id =
-                       assignments.id
+            // ==========================================
+            // CHECK TEACHER OWNERSHIP
+            // ==========================================
 
-                 INNER JOIN courses
-                    ON assignments.course_id =
-                       courses.id
+            const checkResult =
+                await pool.query(
+                    `SELECT
+                        assignment_submissions.id,
+                        courses.teacher_id
 
-                 WHERE assignment_submissions.id = $1`,
-                [submissionId]
-            );
+                     FROM assignment_submissions
 
-            if (checkResult.rows.length === 0) {
+                     INNER JOIN assignments
+                        ON assignment_submissions.assignment_id =
+                           assignments.id
+
+                     INNER JOIN courses
+                        ON assignments.course_id =
+                           courses.id
+
+                     WHERE assignment_submissions.id = $1`,
+                    [
+                        submissionId
+                    ]
+                );
+
+
+            if (
+                checkResult.rows.length === 0
+            ) {
 
                 return res.status(404).json({
-                    message: "Submission not found"
+                    message:
+                        "Submission not found"
                 });
 
             }
+
 
             if (
                 checkResult.rows[0].teacher_id !==
@@ -580,7 +850,11 @@ router.put(
 
             }
 
-            // Update marks and feedback
+
+            // ==========================================
+            // UPDATE MARKS AND FEEDBACK
+            // ==========================================
+
             const result = await pool.query(
                 `UPDATE assignment_submissions
                  SET
@@ -595,13 +869,17 @@ router.put(
                 ]
             );
 
+
             res.json({
+
                 message:
                     "Submission graded successfully",
 
                 submission:
                     result.rows[0]
+
             });
+
 
         } catch (error) {
 
@@ -609,6 +887,7 @@ router.put(
                 "Grade submission error:",
                 error
             );
+
 
             res.status(500).json({
                 message:
@@ -620,5 +899,5 @@ router.put(
     }
 );
 
-module.exports = router;
 
+module.exports = router;

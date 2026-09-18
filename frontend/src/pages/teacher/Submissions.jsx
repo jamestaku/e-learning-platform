@@ -214,12 +214,15 @@ function Submissions() {
 
                                 <div className="submission-file">
                                     <a
-                                        href={`${API_URL}/uploads/${submission.submission_file}`}
+                                        href={
+                                            submission.file_url ||
+                                            `${API_URL}/uploads/${submission.submission_file}`
+                                        }
                                         target="_blank"
-                                        rel="noreferrer"
+                                        rel="noopener noreferrer"
                                         className="teacher-submission-pdf"
                                     >
-                                        📄 Open Student PDF
+                                        📄 Open Student Submission
                                     </a>
                                 </div>
 

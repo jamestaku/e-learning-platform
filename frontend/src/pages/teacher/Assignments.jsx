@@ -1,3 +1,4 @@
+
 import API_URL from "../../api";
 import { useEffect, useState } from "react";
 
@@ -15,7 +16,6 @@ function Assignments() {
     const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
     const [message, setMessage] = useState("");
-
 
     const token = localStorage.getItem("token");
 
@@ -37,9 +37,7 @@ function Assignments() {
                 }
             );
 
-
             const data = await response.json();
-
 
             if (!response.ok) {
 
@@ -51,11 +49,9 @@ function Assignments() {
                 return;
             }
 
-
             setCourses(
                 data.courses || []
             );
-
 
         } catch (error) {
 
@@ -87,9 +83,7 @@ function Assignments() {
                 }
             );
 
-
             const data = await response.json();
-
 
             if (!response.ok) {
 
@@ -101,11 +95,9 @@ function Assignments() {
                 return;
             }
 
-
             setAssignments(
                 data.assignments || []
             );
-
 
         } catch (error) {
 
@@ -114,7 +106,6 @@ function Assignments() {
             setMessage(
                 "Unable to connect to the server"
             );
-
 
         } finally {
 
@@ -170,11 +161,11 @@ function Assignments() {
         }
 
 
-        // Check PDF size
+        // Check file size
         if (pdf && pdf.size > 10 * 1024 * 1024) {
 
             setMessage(
-                "PDF file must not be larger than 10 MB."
+                "Assignment file must not be larger than 10 MB."
             );
 
             return;
@@ -264,9 +255,14 @@ function Assignments() {
 
 
             // Reset file input
-            document.getElementById(
-                "assignment-pdf"
-            ).value = "";
+            const fileInput =
+                document.getElementById(
+                    "assignment-pdf"
+                );
+
+            if (fileInput) {
+                fileInput.value = "";
+            }
 
 
             // Reload assignments
@@ -297,9 +293,10 @@ function Assignments() {
     const formatDate = (date) => {
 
         if (!date) {
-            return "No due date";
-        }
 
+            return "No due date";
+
+        }
 
         return new Date(date).toLocaleString();
 
@@ -501,18 +498,18 @@ function Assignments() {
                         </div>
 
 
-                        {/* PDF */}
+                        {/* Assignment File */}
 
                         <div className="assignment-form-group">
 
                             <label>
-                                Assignment PDF
+                                Assignment File
                             </label>
 
                             <input
                                 id="assignment-pdf"
                                 type="file"
-                                accept="application/pdf,.pdf"
+                                accept=".pdf,.doc,.docx,.xls,.xlsx,.mdb,.accdb,.ppt,.pptx"
                                 onChange={(event) =>
                                     setPdf(
                                         event.target.files[0] || null
@@ -521,7 +518,7 @@ function Assignments() {
                             />
 
                             <small>
-                                PDF only • Maximum 10 MB
+                                PDF, Word, Excel, Access or PowerPoint • Maximum 10 MB
                             </small>
 
                         </div>
@@ -665,12 +662,15 @@ function Assignments() {
                                         {assignment.pdf_file && (
 
                                             <a
-                                                href={`${API_URL}/uploads/${assignment.pdf_file}`}
+                                                href={
+                                                    assignment.pdf_url ||
+                                                    `${API_URL}/uploads/${assignment.pdf_file}`
+                                                }
                                                 target="_blank"
                                                 rel="noreferrer"
                                                 className="assignment-pdf-link"
                                             >
-                                                📄 View PDF
+                                                📄 View Assignment File
                                             </a>
 
                                         )}
@@ -698,3 +698,4 @@ function Assignments() {
 }
 
 export default Assignments;
+

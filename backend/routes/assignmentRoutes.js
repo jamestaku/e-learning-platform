@@ -771,4 +771,143 @@ router.get(
 );
 
 
+// ==========================================
+// DELETE ASSIGNMENT - TEACHER ONLY
+// DELETE /api/assignments/:id
+// ==========================================
+
+router.delete(
+    "/:id",
+    authenticateToken,
+    requireRole("teacher"),
+    async (req, res) => {
+
+        let client;
+
+        try {
+
+            const { id } = req.params;
+
+            // ==========================================
+            // GET ASSIGNMENT AND CHECK OWNERSHIP
+            // ==========================================
+
+            const assignmentResult = await pool.query(
+                `SELECT
+                    assignments.id,
+                    assignments.pdf_file,
+                    assignments.course_id
+                 FROM assignments
+                 INNER JOIN courses
+                    ON assignments.course_id = courses.id
+                 WHERE assignments.id = $1
+                 AND courses.teacher_id = $2`,
+                [
+                    id,
+                    req.user.id
+                ]
+            );
+
+
+            // ==========================================
+            // CHECK IF ASSIGNMENT EXISTS
+            // ==========================================
+
+            if (assignmentResult.rows.length === 0) {
+
+                return res.status(404).json({
+                    message:
+                        "Assignment not found or you do not have permission to delete it"
+                });
+
+            }
+
+
+            const assignment =
+                assignmentResult.rows[0];
+
+
+            // ==========================================
+            // DELETE SUPABASE FILE
+            // ==========================================
+
+            if (assignment.pdf_file) {
+
+                const { error: storageError } =
+                    await supabase
+                        .storage
+                        .from(BUCKET_NAME)
+                        .remove([
+                            assignment.pdf_file
+                        ]);
+
+
+                if (storageError) {
+
+                    console.error(
+                        "Supabase assignment file delete error:",
+                        storageError
+                    );
+
+                    return res.status(500).json({
+                        message:
+                            "Failed to delete assignment file"
+                    });
+
+                }
+
+            }
+
+
+            // ==========================================
+            // DELETE ASSIGNMENT
+            // ==========================================
+
+            const deleteResult = await pool.query(
+                `DELETE FROM assignments
+                 WHERE id = $1
+                 RETURNING id`,
+                [
+                    id
+                ]
+            );
+
+
+            if (deleteResult.rows.length === 0) {
+
+                return res.status(404).json({
+                    message: "Assignment not found"
+                });
+
+            }
+
+
+            // ==========================================
+            // SUCCESS
+            // ==========================================
+
+            res.json({
+                message:
+                    "Assignment deleted successfully"
+            });
+
+
+        } catch (error) {
+
+            console.error(
+                "Delete assignment error:",
+                error
+            );
+
+
+            res.status(500).json({
+                message:
+                    "Internal server error"
+            });
+
+        }
+
+    }
+);
+
 module.exports = router;

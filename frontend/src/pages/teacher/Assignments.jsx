@@ -1,4 +1,3 @@
-
 import API_URL from "../../api";
 import { useEffect, useState } from "react";
 
@@ -15,6 +14,7 @@ function Assignments() {
 
     const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
+    const [deleting, setDeleting] = useState(null);
     const [message, setMessage] = useState("");
 
     const token = localStorage.getItem("token");
@@ -280,6 +280,81 @@ function Assignments() {
         } finally {
 
             setCreating(false);
+
+        }
+
+    };
+
+
+    // ==========================================
+    // DELETE ASSIGNMENT
+    // ==========================================
+
+    const handleDeleteAssignment = async (assignment) => {
+
+        const confirmed = window.confirm(
+            `Are you sure you want to delete "${assignment.title}"?`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+
+        setDeleting(assignment.id);
+        setMessage("");
+
+
+        try {
+
+            const response = await fetch(
+                `${API_URL}/api/assignments/${assignment.id}`,
+                {
+                    method: "DELETE",
+
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                setMessage(
+                    data.message ||
+                    "Unable to delete assignment"
+                );
+
+                return;
+
+            }
+
+
+            setMessage(
+                "Assignment deleted successfully!"
+            );
+
+
+            // Reload assignments
+            await fetchAssignments();
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            setMessage(
+                "Unable to connect to the server"
+            );
+
+        } finally {
+
+            setDeleting(null);
 
         }
 
@@ -677,6 +752,35 @@ function Assignments() {
 
                                     </div>
 
+
+                                    {/* ==================================
+                                        DELETE BUTTON
+                                    ================================== */}
+
+                                    <div className="assignment-actions">
+
+                                        <button
+                                            type="button"
+                                            className="delete-assignment-btn"
+                                            onClick={() =>
+                                                handleDeleteAssignment(
+                                                    assignment
+                                                )
+                                            }
+                                            disabled={
+                                                deleting === assignment.id
+                                            }
+                                        >
+
+                                            {deleting === assignment.id
+                                                ? "Deleting..."
+                                                : "🗑️ Delete Assignment"}
+
+                                        </button>
+
+                                    </div>
+
+
                                 </div>
 
 
@@ -698,4 +802,3 @@ function Assignments() {
 }
 
 export default Assignments;
-

@@ -1,3 +1,4 @@
+
 const express = require("express");
 
 const pool = require("../config/db");
@@ -22,7 +23,7 @@ router.post(
 
             const { title, description } = req.body;
 
-            if (!title) {
+            if (!title || !title.trim()) {
                 return res.status(400).json({
                     message: "Course title is required"
                 });
@@ -34,7 +35,7 @@ router.post(
                 VALUES ($1, $2, $3)
                 RETURNING *`,
                 [
-                    title,
+                    title.trim(),
                     description || null,
                     req.user.id
                 ]
@@ -99,6 +100,118 @@ router.get(
 
 
 // ==========================================
+// UPDATE COURSE - TEACHER ONLY
+// PUT /api/courses/:id
+// ==========================================
+
+router.put(
+    "/:id",
+    authenticateToken,
+    requireRole("teacher"),
+    async (req, res) => {
+
+        try {
+
+            const courseId = req.params.id;
+            const { title, description } = req.body;
+
+            if (!title || !title.trim()) {
+                return res.status(400).json({
+                    message: "Course title is required"
+                });
+            }
+
+            const result = await pool.query(
+                `UPDATE courses
+                 SET title = $1,
+                     description = $2
+                 WHERE id = $3
+                 AND teacher_id = $4
+                 RETURNING *`,
+                [
+                    title.trim(),
+                    description || null,
+                    courseId,
+                    req.user.id
+                ]
+            );
+
+            if (result.rows.length === 0) {
+                return res.status(404).json({
+                    message: "Course not found or you do not have permission to edit it"
+                });
+            }
+
+            res.json({
+                message: "Course updated successfully",
+                course: result.rows[0]
+            });
+
+        } catch (error) {
+
+            console.error("Update course error:", error);
+
+            res.status(500).json({
+                message: "Internal server error"
+            });
+
+        }
+
+    }
+);
+
+
+// ==========================================
+// DELETE COURSE - TEACHER ONLY
+// DELETE /api/courses/:id
+// ==========================================
+
+router.delete(
+    "/:id",
+    authenticateToken,
+    requireRole("teacher"),
+    async (req, res) => {
+
+        try {
+
+            const courseId = req.params.id;
+
+            const result = await pool.query(
+                `DELETE FROM courses
+                 WHERE id = $1
+                 AND teacher_id = $2
+                 RETURNING id`,
+                [
+                    courseId,
+                    req.user.id
+                ]
+            );
+
+            if (result.rows.length === 0) {
+                return res.status(404).json({
+                    message: "Course not found or you do not have permission to delete it"
+                });
+            }
+
+            res.json({
+                message: "Course deleted successfully"
+            });
+
+        } catch (error) {
+
+            console.error("Delete course error:", error);
+
+            res.status(500).json({
+                message: "Internal server error"
+            });
+
+        }
+
+    }
+);
+
+
+// ==========================================
 // GET ALL COURSES
 // GET /api/courses
 // ==========================================
@@ -143,3 +256,4 @@ router.get(
 
 
 module.exports = router;
+

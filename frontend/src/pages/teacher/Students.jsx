@@ -3,252 +3,372 @@ import { useEffect, useState } from "react";
 
 function Students() {
 
-    const [students, setStudents] = useState([]);
-    const [search, setSearch] = useState("");
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
 
-    const token = localStorage.getItem("token");
+const [students, setStudents] = useState([]);
+const [search, setSearch] = useState("");
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState("");
+const [success, setSuccess] = useState("");
 
-    // ================================
-    // LOAD STUDENTS
-    // ================================
+const token = localStorage.getItem("token");
 
-    const fetchStudents = async () => {
 
-        try {
+// ================================
+// LOAD TEACHER'S STUDENTS
+// ================================
 
-            setLoading(true);
-            setError("");
+const fetchStudents = async () => {
 
-            const response = await fetch(
-                `${API_URL}/api/users/students`,
-                {
-                    headers: {
-                        Authorization:
-                            "Bearer " + token
-                    }
+    try {
+
+        setLoading(true);
+        setError("");
+
+        const response = await fetch(
+            `${API_URL}/api/users/students`,
+            {
+                headers: {
+                    Authorization:
+                        "Bearer " + token
                 }
-            );
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(
-                    data.message ||
-                    "Failed to load students"
-                );
             }
+        );
 
-            setStudents(data.students || []);
+        const data = await response.json();
 
-        } catch (error) {
+        if (!response.ok) {
 
-            console.error(
-                "Load students error:",
-                error
+            throw new Error(
+                data.message ||
+                "Failed to load students"
             );
-
-            setError(error.message);
-
-        } finally {
-
-            setLoading(false);
         }
-    };
+
+        setStudents(
+            data.students || []
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Load students error:",
+            error
+        );
+
+        setError(error.message);
+
+    } finally {
+
+        setLoading(false);
+    }
+};
 
 
-    // ================================
-    // LOAD ON PAGE OPEN
-    // ================================
+// ================================
+// LOAD WHEN PAGE OPENS
+// ================================
 
-    useEffect(() => {
-        fetchStudents();
-    }, []);
+useEffect(() => {
+
+    fetchStudents();
+
+}, []);
 
 
-    // ================================
-    // ACTIVATE / DEACTIVATE STUDENT
-    // ================================
+// ================================
+// ACTIVATE / DEACTIVATE
+// ================================
 
-    const changeStatus = async (
-        studentId,
-        currentStatus
-    ) => {
+const changeStatus = async (
+    studentId,
+    currentStatus
+) => {
 
-        const newStatus =
-            currentStatus === "active"
-                ? "inactive"
-                : "active";
+    const newStatus =
+        currentStatus === "active"
+            ? "inactive"
+            : "active";
 
-        try {
+    try {
 
-            setError("");
-            setSuccess("");
+        setError("");
+        setSuccess("");
 
-            const response = await fetch(
-                `${API_URL}/api/users/students/${studentId}/status`,
-                {
-                    method: "PUT",
+        const response = await fetch(
+            `${API_URL}/api/users/students/${studentId}/status`,
+            {
+                method: "PUT",
 
-                    headers: {
-                        "Content-Type":
-                            "application/json",
+                headers: {
+                    "Content-Type":
+                        "application/json",
 
-                        Authorization:
-                            "Bearer " + token
-                    },
+                    Authorization:
+                        "Bearer " + token
+                },
 
-                    body: JSON.stringify({
+                body: JSON.stringify({
+                    status: newStatus
+                })
+            }
+        );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.message ||
+                "Failed to update student status"
+            );
+        }
+
+        setSuccess(
+            data.message
+        );
+
+
+        // Update immediately
+
+        setStudents(prev =>
+            prev.map(student =>
+                student.id === studentId
+                    ? {
+                        ...student,
                         status: newStatus
-                    })
-                }
-            );
+                    }
+                    : student
+            )
+        );
 
-            const data = await response.json();
+    } catch (error) {
 
-            if (!response.ok) {
-                throw new Error(
-                    data.message ||
-                    "Failed to update student status"
-                );
-            }
+        console.error(
+            "Change student status error:",
+            error
+        );
 
-            setSuccess(data.message);
-
-            // Update the student immediately
-            setStudents(prev =>
-                prev.map(student =>
-                    student.id === studentId
-                        ? {
-                            ...student,
-                            status: newStatus
-                        }
-                        : student
-                )
-            );
-
-        } catch (error) {
-
-            console.error(
-                "Change student status error:",
-                error
-            );
-
-            setError(error.message);
-        }
-    };
+        setError(
+            error.message
+        );
+    }
+};
 
 
-    // ================================
-    // DELETE STUDENT
-    // ================================
+// ================================
+// DELETE STUDENT
+// ================================
 
-    const deleteStudent = async (
-        studentId,
-        studentName
-    ) => {
+const deleteStudent = async (
+    studentId,
+    studentName
+) => {
 
-        const confirmed = window.confirm(
+    const confirmed =
+        window.confirm(
             `Are you sure you want to delete ${studentName}? This action cannot be undone.`
         );
 
-        if (!confirmed) {
-            return;
-        }
+    if (!confirmed) {
+        return;
+    }
 
-        try {
 
-            setError("");
-            setSuccess("");
+    try {
 
-            const response = await fetch(
-                `${API_URL}/api/users/students/${studentId}`,
-                {
-                    method: "DELETE",
+        setError("");
+        setSuccess("");
 
-                    headers: {
-                        Authorization:
-                            "Bearer " + token
-                    }
+        const response = await fetch(
+            `${API_URL}/api/users/students/${studentId}`,
+            {
+                method: "DELETE",
+
+                headers: {
+                    Authorization:
+                        "Bearer " + token
                 }
-            );
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(
-                    data.message ||
-                    "Failed to delete student"
-                );
             }
+        );
 
-            // Remove student from the current list
-            setStudents(prev =>
-                prev.filter(
-                    student =>
-                        student.id !== studentId
-                )
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.message ||
+                "Failed to delete student"
             );
-
-            setSuccess(data.message);
-
-        } catch (error) {
-
-            console.error(
-                "Delete student error:",
-                error
-            );
-
-            setError(error.message);
         }
-    };
 
 
-    // ================================
-    // SEARCH STUDENTS
-    // ================================
-
-    const filteredStudents =
-        students.filter(student => {
-
-            const searchText =
-                search.toLowerCase().trim();
-
-            return (
-                student.full_name
-                    .toLowerCase()
-                    .includes(searchText) ||
-
-                student.email
-                    .toLowerCase()
-                    .includes(searchText)
-            );
-        });
+        setStudents(prev =>
+            prev.filter(
+                student =>
+                    student.id !== studentId
+            )
+        );
 
 
-    return (
+        setSuccess(
+            data.message
+        );
 
-        <div className="page-container">
+    } catch (error) {
+
+        console.error(
+            "Delete student error:",
+            error
+        );
+
+        setError(
+            error.message
+        );
+    }
+};
+
+
+// ================================
+// SEARCH
+// ================================
+
+const filteredStudents =
+    students.filter(student => {
+
+        const searchText =
+            search
+                .toLowerCase()
+                .trim();
+
+        return (
+
+            student.full_name
+                .toLowerCase()
+                .includes(searchText)
+
+            ||
+
+            student.email
+                .toLowerCase()
+                .includes(searchText)
+
+            ||
+
+            (student.courses || "")
+                .toLowerCase()
+                .includes(searchText)
+
+        );
+    });
+
+
+return (
+
+    <div className="page-container">
+
+        {/* ================================
+            PAGE HEADER
+        ================================= */}
+
+        <div className="page-header">
+
+            <div>
+
+                <h1>
+                    Students
+                </h1>
+
+                <p>
+                    Manage students enrolled
+                    in your courses.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        {/* ================================
+            SUCCESS MESSAGE
+        ================================= */}
+
+        {success && (
+
+            <div className="student-success">
+
+                {success}
+
+            </div>
+
+        )}
+
+
+        {/* ================================
+            ERROR MESSAGE
+        ================================= */}
+
+        {error && (
+
+            <div className="student-error">
+
+                {error}
+
+            </div>
+
+        )}
+
+
+        {/* ================================
+            STUDENT MANAGEMENT CARD
+        ================================= */}
+
+        <div className="students-management-card">
+
 
             {/* ================================
-                PAGE HEADER
+                TOOLBAR
             ================================= */}
 
-            <div className="page-header">
+            <div className="students-toolbar">
 
                 <div>
 
-                    <h1>
-                        Students
-                    </h1>
+                    <h2>
+                        My Students
+                    </h2>
 
                     <p>
-                        Manage student accounts
-                        and their access to the
-                        platform.
+
+                        {students.length} student
+                        {students.length !== 1
+                            ? "s"
+                            : ""}
+
                     </p>
+
+                </div>
+
+
+                {/* SEARCH */}
+
+                <div className="student-search">
+
+                    <span>
+                        🔍
+                    </span>
+
+                    <input
+                        type="text"
+                        placeholder="Search students or courses..."
+                        value={search}
+                        onChange={(e) =>
+                            setSearch(
+                                e.target.value
+                            )
+                        }
+                    />
 
                 </div>
 
@@ -256,14 +376,14 @@ function Students() {
 
 
             {/* ================================
-                SUCCESS MESSAGE
+                LOADING
             ================================= */}
 
-            {success && (
+            {loading && (
 
-                <div className="student-success">
+                <div className="students-loading">
 
-                    {success}
+                    Loading your students...
 
                 </div>
 
@@ -271,319 +391,259 @@ function Students() {
 
 
             {/* ================================
-                ERROR MESSAGE
+                EMPTY RESULT
             ================================= */}
 
-            {error && (
+            {!loading &&
+                filteredStudents.length === 0 && (
 
-                <div className="student-error">
+                    <div className="students-empty">
 
-                    {error}
+                        <div className="students-empty-icon">
+                            👥
+                        </div>
 
-                </div>
-
-            )}
-
-
-            {/* ================================
-                STUDENT MANAGEMENT CARD
-            ================================= */}
-
-            <div className="students-management-card">
-
-
-                {/* ================================
-                    TOOLBAR
-                ================================= */}
-
-                <div className="students-toolbar">
-
-                    <div>
-
-                        <h2>
-                            All Students
-                        </h2>
+                        <h3>
+                            No students found
+                        </h3>
 
                         <p>
 
-                            {students.length} student
-                            {students.length !== 1
-                                ? "s"
-                                : ""}
+                            {search
+
+                                ? "No students match your search."
+
+                                : "There are currently no students enrolled in your courses."}
 
                         </p>
-
-                    </div>
-
-
-                    {/* SEARCH */}
-
-                    <div className="student-search">
-
-                        <span>
-                            🔍
-                        </span>
-
-                        <input
-                            type="text"
-                            placeholder="Search students..."
-                            value={search}
-                            onChange={(e) =>
-                                setSearch(
-                                    e.target.value
-                                )
-                            }
-                        />
-
-                    </div>
-
-                </div>
-
-
-                {/* ================================
-                    LOADING
-                ================================= */}
-
-                {loading && (
-
-                    <div className="students-loading">
-
-                        Loading students...
 
                     </div>
 
                 )}
 
 
-                {/* ================================
-                    EMPTY RESULT
-                ================================= */}
+            {/* ================================
+                STUDENT TABLE
+            ================================= */}
 
-                {!loading &&
-                    filteredStudents.length === 0 && (
+            {!loading &&
+                filteredStudents.length > 0 && (
 
-                        <div className="students-empty">
+                    <div className="students-table-wrapper">
 
-                            <div className="students-empty-icon">
-                                👥
-                            </div>
+                        <table className="students-table">
 
-                            <h3>
-                                No students found
-                            </h3>
+                            <thead>
 
-                            <p>
-                                {search
-                                    ? "No students match your search."
-                                    : "There are currently no students registered."}
-                            </p>
+                                <tr>
 
-                        </div>
+                                    <th>
+                                        Student
+                                    </th>
 
-                    )}
+                                    <th>
+                                        Email
+                                    </th>
 
+                                    <th>
+                                        Course(s)
+                                    </th>
 
-                {/* ================================
-                    STUDENT TABLE
-                ================================= */}
+                                    <th>
+                                        Status
+                                    </th>
 
-                {!loading &&
-                    filteredStudents.length > 0 && (
+                                    <th>
+                                        Joined
+                                    </th>
 
-                        <div className="students-table-wrapper">
+                                    <th>
+                                        Actions
+                                    </th>
 
-                            <table className="students-table">
+                                </tr>
 
-                                <thead>
-
-                                    <tr>
-
-                                        <th>
-                                            Student
-                                        </th>
-
-                                        <th>
-                                            Email
-                                        </th>
-
-                                        <th>
-                                            Status
-                                        </th>
-
-                                        <th>
-                                            Joined
-                                        </th>
-
-                                        <th>
-                                            Actions
-                                        </th>
-
-                                    </tr>
-
-                                </thead>
+                            </thead>
 
 
-                                <tbody>
+                            <tbody>
 
-                                    {filteredStudents.map(
-                                        student => (
+                                {filteredStudents.map(
+                                    student => (
 
-                                            <tr
-                                                key={
-                                                    student.id
-                                                }
-                                            >
+                                        <tr
+                                            key={
+                                                student.id
+                                            }
+                                        >
 
-                                                {/* STUDENT */}
+                                            {/* STUDENT */}
 
-                                                <td>
+                                            <td>
 
-                                                    <div className="student-table-name">
+                                                <div className="student-table-name">
 
-                                                        <div className="student-table-avatar">
+                                                    <div className="student-table-avatar">
 
-                                                            {student.full_name
-                                                                .charAt(0)
-                                                                .toUpperCase()}
-
-                                                        </div>
-
-
-                                                        <div>
-
-                                                            <strong>
-                                                                {
-                                                                    student.full_name
-                                                                }
-                                                            </strong>
-
-                                                            <span>
-                                                                Student
-                                                            </span>
-
-                                                        </div>
+                                                        {student.full_name
+                                                            .charAt(0)
+                                                            .toUpperCase()}
 
                                                     </div>
 
-                                                </td>
+
+                                                    <div>
+
+                                                        <strong>
+                                                            {
+                                                                student.full_name
+                                                            }
+                                                        </strong>
+
+                                                        <span>
+                                                            Student
+                                                        </span>
+
+                                                    </div>
+
+                                                </div>
+
+                                            </td>
 
 
-                                                {/* EMAIL */}
+                                            {/* EMAIL */}
 
-                                                <td>
+                                            <td>
 
-                                                    {student.email}
+                                                {student.email}
 
-                                                </td>
+                                            </td>
 
 
-                                                {/* STATUS */}
+                                            {/* COURSES */}
 
-                                                <td>
+                                            <td>
 
-                                                    <span
+                                                <span className="student-course">
+
+                                                    {student.courses ||
+                                                        "No course"}
+
+                                                </span>
+
+                                            </td>
+
+
+                                            {/* STATUS */}
+
+                                            <td>
+
+                                                <span
+                                                    className={
+                                                        student.status ===
+                                                        "active"
+                                                            ? "student-status active"
+                                                            : "student-status inactive"
+                                                    }
+                                                >
+
+                                                    <span>
+                                                        ●
+                                                    </span>
+
+                                                    {student.status
+                                                        .charAt(0)
+                                                        .toUpperCase() +
+                                                        student.status.slice(1)}
+
+                                                </span>
+
+                                            </td>
+
+
+                                            {/* JOINED */}
+
+                                            <td>
+
+                                                {new Date(
+                                                    student.created_at
+                                                ).toLocaleDateString()}
+
+                                            </td>
+
+
+                                            {/* ACTIONS */}
+
+                                            <td>
+
+                                                <div className="student-actions">
+
+                                                    {/* ACTIVATE / DEACTIVATE */}
+
+                                                    <button
                                                         className={
                                                             student.status ===
                                                             "active"
-                                                                ? "student-status active"
-                                                                : "student-status inactive"
+                                                                ? "student-action deactivate"
+                                                                : "student-action activate"
+                                                        }
+
+                                                        onClick={() =>
+                                                            changeStatus(
+                                                                student.id,
+                                                                student.status
+                                                            )
                                                         }
                                                     >
 
-                                                        <span>
-                                                            ●
-                                                        </span>
+                                                        {student.status ===
+                                                        "active"
+                                                            ? "Deactivate"
+                                                            : "Activate"}
 
-                                                        {student.status
-                                                            .charAt(0)
-                                                            .toUpperCase() +
-                                                            student.status.slice(1)}
-
-                                                    </span>
-
-                                                </td>
+                                                    </button>
 
 
-                                                {/* JOINED */}
+                                                    {/* DELETE */}
 
-                                                <td>
+                                                    <button
+                                                        className="student-action delete"
 
-                                                    {new Date(
-                                                        student.created_at
-                                                    ).toLocaleDateString()}
+                                                        onClick={() =>
+                                                            deleteStudent(
+                                                                student.id,
+                                                                student.full_name
+                                                            )
+                                                        }
+                                                    >
 
-                                                </td>
+                                                        Delete
 
+                                                    </button>
 
-                                                {/* ACTIONS */}
+                                                </div>
 
-                                                <td>
+                                            </td>
 
-                                                    <div className="student-actions">
+                                        </tr>
 
-                                                        {/* ACTIVATE / DEACTIVATE */}
+                                    )
+                                )}
 
-                                                        <button
-                                                            className={
-                                                                student.status ===
-                                                                "active"
-                                                                    ? "student-action deactivate"
-                                                                    : "student-action activate"
-                                                            }
-                                                            onClick={() =>
-                                                                changeStatus(
-                                                                    student.id,
-                                                                    student.status
-                                                                )
-                                                            }
-                                                        >
+                            </tbody>
 
-                                                            {student.status ===
-                                                            "active"
-                                                                ? "Deactivate"
-                                                                : "Activate"}
+                        </table>
 
-                                                        </button>
+                    </div>
 
-
-                                                        {/* DELETE */}
-
-                                                        <button
-                                                            className="student-action delete"
-                                                            onClick={() =>
-                                                                deleteStudent(
-                                                                    student.id,
-                                                                    student.full_name
-                                                                )
-                                                            }
-                                                        >
-
-                                                            Delete
-
-                                                        </button>
-
-                                                    </div>
-
-                                                </td>
-
-                                            </tr>
-
-                                        )
-                                    )}
-
-                                </tbody>
-
-                            </table>
-
-                        </div>
-
-                    )}
-
-            </div>
+                )}
 
         </div>
-    );
+
+    </div>
+);
+
+
 }
 
 export default Students;
-

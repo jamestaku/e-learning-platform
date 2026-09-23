@@ -1,5 +1,6 @@
 import API_URL from "../../api";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 function AdminDashboard() {
 
@@ -14,120 +15,148 @@ function AdminDashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    useEffect(() => {
+    const token = localStorage.getItem("token");
 
-        const fetchStats = async () => {
 
-            try {
+    // ========================================
+    // LOAD ADMIN STATISTICS
+    // ========================================
 
-                const token = localStorage.getItem("token");
+    const fetchStats = async () => {
 
-                const response = await fetch(
-                    `${API_URL}/api/admin/stats`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`
-                        }
+        try {
+
+            setLoading(true);
+            setError("");
+
+            const response = await fetch(
+                `${API_URL}/api/admin/stats`,
+                {
+                    method: "GET",
+
+                    headers: {
+                        "Authorization": `Bearer ${token}`
                     }
-                );
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(
-                        data.message || "Failed to load statistics"
-                    );
                 }
+            );
 
-                setStats(data.stats);
+            const data = await response.json();
 
-            } catch (error) {
+            if (!response.ok) {
 
-                console.error(
-                    "Dashboard statistics error:",
-                    error
+                throw new Error(
+                    data.message ||
+                    "Failed to load dashboard statistics"
                 );
 
-                setError(error.message);
-
-            } finally {
-
-                setLoading(false);
             }
-        };
+
+            setStats({
+                total_users: data.total_users || 0,
+                total_teachers: data.total_teachers || 0,
+                total_students: data.total_students || 0,
+                active_users: data.active_users || 0,
+                inactive_users: data.inactive_users || 0
+            });
+
+        } catch (error) {
+
+            console.error(
+                "Fetch admin statistics error:",
+                error
+            );
+
+            setError(error.message);
+
+        } finally {
+
+            setLoading(false);
+
+        }
+
+    };
+
+
+    // ========================================
+    // LOAD STATISTICS WHEN PAGE OPENS
+    // ========================================
+
+    useEffect(() => {
 
         fetchStats();
 
     }, []);
 
 
-    if (loading) {
-
-        return (
-            <div className="text-center py-5">
-
-                <div
-                    className="spinner-border text-primary"
-                    role="status"
-                ></div>
-
-                <p className="mt-3 text-muted">
-                    Loading dashboard...
-                </p>
-
-            </div>
-        );
-    }
-
-
-    if (error) {
-
-        return (
-            <div>
-
-                <h2 className="mb-4">
-                    Admin Dashboard
-                </h2>
-
-                <div className="alert alert-danger">
-                    {error}
-                </div>
-
-            </div>
-        );
-    }
-
+    // ========================================
+    // CALCULATE PERCENTAGES
+    // ========================================
 
     const userPercentage =
         stats.total_users > 0
-            ? Math.round(
-                (stats.total_teachers / stats.total_users) * 100
-            )
+            ? (stats.total_teachers / stats.total_users) * 100
             : 0;
-
 
     const studentPercentage =
         stats.total_users > 0
-            ? Math.round(
-                (stats.total_students / stats.total_users) * 100
-            )
+            ? (stats.total_students / stats.total_users) * 100
             : 0;
-
 
     const activePercentage =
         stats.total_users > 0
-            ? Math.round(
-                (stats.active_users / stats.total_users) * 100
-            )
+            ? (stats.active_users / stats.total_users) * 100
             : 0;
 
 
-    return (
-        <div>
+    // ========================================
+    // LOADING
+    // ========================================
 
-            {/* ========================= */}
-            {/* PAGE HEADER */}
-            {/* ========================= */}
+    if (loading) {
+
+        return (
+
+            <div className="container-fluid p-4">
+
+                <div
+                    className="d-flex justify-content-center align-items-center"
+                    style={{ minHeight: "400px" }}
+                >
+
+                    <div className="text-center">
+
+                        <div
+                            className="spinner-border text-primary mb-3"
+                            role="status"
+                        >
+                        </div>
+
+                        <p className="text-muted mb-0">
+                            Loading dashboard...
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        );
+
+    }
+
+
+    // ========================================
+    // PAGE
+    // ========================================
+
+    return (
+
+        <div className="container-fluid p-4">
+
+            {/* ========================================
+                PAGE HEADER
+            ======================================== */}
 
             <div className="d-flex justify-content-between align-items-center mb-4">
 
@@ -138,42 +167,62 @@ function AdminDashboard() {
                     </h2>
 
                     <p className="text-muted mb-0">
-                        Manage and monitor your e-learning platform.
+                        Overview of your e-learning platform
                     </p>
 
                 </div>
 
-                <div className="text-end">
-
-                    <span className="badge bg-success px-3 py-2">
-                        <i className="bi bi-circle-fill me-2"></i>
-                        System Online
-                    </span>
-
-                </div>
+                <button
+                    className="btn btn-outline-primary"
+                    onClick={fetchStats}
+                >
+                    <i className="fas fa-sync-alt me-2"></i>
+                    Refresh
+                </button>
 
             </div>
 
 
-            {/* ========================= */}
-            {/* STATISTICS CARDS */}
-            {/* ========================= */}
+            {/* ========================================
+                ERROR
+            ======================================== */}
+
+            {error && (
+
+                <div
+                    className="alert alert-danger"
+                    role="alert"
+                >
+
+                    <i className="fas fa-exclamation-circle me-2"></i>
+
+                    {error}
+
+                </div>
+
+            )}
+
+
+            {/* ========================================
+                STATISTICS CARDS
+            ======================================== */}
 
             <div className="row g-4 mb-4">
 
-                {/* Total Users */}
 
-                <div className="col-xl-3 col-md-6">
+                {/* TOTAL USERS */}
+
+                <div className="col-md-6 col-xl-3">
 
                     <div className="card border-0 shadow-sm h-100">
 
-                        <div className="card-body">
+                        <div className="card-body p-4">
 
-                            <div className="d-flex justify-content-between align-items-center">
+                            <div className="d-flex justify-content-between align-items-start">
 
                                 <div>
 
-                                    <p className="text-muted mb-1">
+                                    <p className="text-muted mb-2">
                                         Total Users
                                     </p>
 
@@ -183,16 +232,8 @@ function AdminDashboard() {
 
                                 </div>
 
-                                <div
-                                    className="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center"
-                                    style={{
-                                        width: "55px",
-                                        height: "55px"
-                                    }}
-                                >
-
-                                    <i className="bi bi-people fs-4"></i>
-
+                                <div className="text-primary fs-1">
+                                    <i className="fas fa-users"></i>
                                 </div>
 
                             </div>
@@ -212,19 +253,19 @@ function AdminDashboard() {
                 </div>
 
 
-                {/* Teachers */}
+                {/* TEACHERS */}
 
-                <div className="col-xl-3 col-md-6">
+                <div className="col-md-6 col-xl-3">
 
                     <div className="card border-0 shadow-sm h-100">
 
-                        <div className="card-body">
+                        <div className="card-body p-4">
 
-                            <div className="d-flex justify-content-between align-items-center">
+                            <div className="d-flex justify-content-between align-items-start">
 
                                 <div>
 
-                                    <p className="text-muted mb-1">
+                                    <p className="text-muted mb-2">
                                         Teachers
                                     </p>
 
@@ -234,16 +275,8 @@ function AdminDashboard() {
 
                                 </div>
 
-                                <div
-                                    className="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center"
-                                    style={{
-                                        width: "55px",
-                                        height: "55px"
-                                    }}
-                                >
-
-                                    <i className="bi bi-person-workspace fs-4"></i>
-
+                                <div className="text-success fs-1">
+                                    <i className="fas fa-chalkboard-teacher"></i>
                                 </div>
 
                             </div>
@@ -263,19 +296,19 @@ function AdminDashboard() {
                 </div>
 
 
-                {/* Students */}
+                {/* STUDENTS */}
 
-                <div className="col-xl-3 col-md-6">
+                <div className="col-md-6 col-xl-3">
 
                     <div className="card border-0 shadow-sm h-100">
 
-                        <div className="card-body">
+                        <div className="card-body p-4">
 
-                            <div className="d-flex justify-content-between align-items-center">
+                            <div className="d-flex justify-content-between align-items-start">
 
                                 <div>
 
-                                    <p className="text-muted mb-1">
+                                    <p className="text-muted mb-2">
                                         Students
                                     </p>
 
@@ -285,16 +318,8 @@ function AdminDashboard() {
 
                                 </div>
 
-                                <div
-                                    className="bg-info bg-opacity-10 text-info rounded-circle d-flex align-items-center justify-content-center"
-                                    style={{
-                                        width: "55px",
-                                        height: "55px"
-                                    }}
-                                >
-
-                                    <i className="bi bi-mortarboard fs-4"></i>
-
+                                <div className="text-info fs-1">
+                                    <i className="fas fa-user-graduate"></i>
                                 </div>
 
                             </div>
@@ -314,38 +339,30 @@ function AdminDashboard() {
                 </div>
 
 
-                {/* Active Users */}
+                {/* ACTIVE USERS */}
 
-                <div className="col-xl-3 col-md-6">
+                <div className="col-md-6 col-xl-3">
 
                     <div className="card border-0 shadow-sm h-100">
 
-                        <div className="card-body">
+                        <div className="card-body p-4">
 
-                            <div className="d-flex justify-content-between align-items-center">
+                            <div className="d-flex justify-content-between align-items-start">
 
                                 <div>
 
-                                    <p className="text-muted mb-1">
+                                    <p className="text-muted mb-2">
                                         Active Users
                                     </p>
 
-                                    <h2 className="fw-bold mb-0 text-success">
+                                    <h2 className="fw-bold mb-0">
                                         {stats.active_users}
                                     </h2>
 
                                 </div>
 
-                                <div
-                                    className="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center"
-                                    style={{
-                                        width: "55px",
-                                        height: "55px"
-                                    }}
-                                >
-
-                                    <i className="bi bi-person-check fs-4"></i>
-
+                                <div className="text-success fs-1">
+                                    <i className="fas fa-user-check"></i>
                                 </div>
 
                             </div>
@@ -353,7 +370,7 @@ function AdminDashboard() {
                             <div className="mt-3">
 
                                 <small className="text-muted">
-                                    Currently active
+                                    Currently active accounts
                                 </small>
 
                             </div>
@@ -367,13 +384,14 @@ function AdminDashboard() {
             </div>
 
 
-            {/* ========================= */}
-            {/* MAIN DASHBOARD CONTENT */}
-            {/* ========================= */}
+            {/* ========================================
+                USER OVERVIEW + ACCOUNT STATUS
+            ======================================== */}
 
             <div className="row g-4">
 
-                {/* User Overview */}
+
+                {/* USER OVERVIEW */}
 
                 <div className="col-lg-8">
 
@@ -381,39 +399,24 @@ function AdminDashboard() {
 
                         <div className="card-body p-4">
 
-                            <div className="d-flex justify-content-between align-items-center mb-4">
-
-                                <div>
-
-                                    <h5 className="fw-bold mb-1">
-                                        User Overview
-                                    </h5>
-
-                                    <small className="text-muted">
-                                        Distribution of platform users
-                                    </small>
-
-                                </div>
-
-                                <i className="bi bi-bar-chart-line fs-4 text-primary"></i>
-
-                            </div>
+                            <h5 className="fw-bold mb-4">
+                                User Overview
+                            </h5>
 
 
-                            {/* Teachers */}
+                            {/* TEACHERS */}
 
                             <div className="mb-4">
 
                                 <div className="d-flex justify-content-between mb-2">
 
-                                    <span>
-                                        <i className="bi bi-person-workspace me-2 text-success"></i>
+                                    <span className="fw-semibold">
                                         Teachers
                                     </span>
 
-                                    <strong>
+                                    <span className="text-muted">
                                         {stats.total_teachers}
-                                    </strong>
+                                    </span>
 
                                 </div>
 
@@ -424,30 +427,31 @@ function AdminDashboard() {
 
                                     <div
                                         className="progress-bar bg-success"
+                                        role="progressbar"
                                         style={{
                                             width: `${userPercentage}%`
                                         }}
-                                    ></div>
+                                    >
+                                    </div>
 
                                 </div>
 
                             </div>
 
 
-                            {/* Students */}
+                            {/* STUDENTS */}
 
                             <div className="mb-4">
 
                                 <div className="d-flex justify-content-between mb-2">
 
-                                    <span>
-                                        <i className="bi bi-mortarboard me-2 text-info"></i>
+                                    <span className="fw-semibold">
                                         Students
                                     </span>
 
-                                    <strong>
+                                    <span className="text-muted">
                                         {stats.total_students}
-                                    </strong>
+                                    </span>
 
                                 </div>
 
@@ -458,30 +462,31 @@ function AdminDashboard() {
 
                                     <div
                                         className="progress-bar bg-info"
+                                        role="progressbar"
                                         style={{
                                             width: `${studentPercentage}%`
                                         }}
-                                    ></div>
+                                    >
+                                    </div>
 
                                 </div>
 
                             </div>
 
 
-                            {/* Active Users */}
+                            {/* TOTAL USERS */}
 
                             <div>
 
                                 <div className="d-flex justify-content-between mb-2">
 
-                                    <span>
-                                        <i className="bi bi-check-circle me-2 text-success"></i>
-                                        Active Users
+                                    <span className="fw-semibold">
+                                        Total Users
                                     </span>
 
-                                    <strong>
-                                        {stats.active_users}
-                                    </strong>
+                                    <span className="text-muted">
+                                        {stats.total_users}
+                                    </span>
 
                                 </div>
 
@@ -491,11 +496,13 @@ function AdminDashboard() {
                                 >
 
                                     <div
-                                        className="progress-bar bg-success"
+                                        className="progress-bar bg-primary"
+                                        role="progressbar"
                                         style={{
-                                            width: `${activePercentage}%`
+                                            width: "100%"
                                         }}
-                                    ></div>
+                                    >
+                                    </div>
 
                                 </div>
 
@@ -508,7 +515,7 @@ function AdminDashboard() {
                 </div>
 
 
-                {/* Account Status */}
+                {/* ACCOUNT STATUS */}
 
                 <div className="col-lg-4">
 
@@ -521,57 +528,59 @@ function AdminDashboard() {
                             </h5>
 
 
-                            <div className="text-center mb-4">
+                            <div className="text-center">
 
                                 <div
-                                    className="rounded-circle border border-5 border-success d-flex flex-column align-items-center justify-content-center mx-auto"
+                                    className="rounded-circle border border-success border-4 d-flex justify-content-center align-items-center mx-auto mb-3"
                                     style={{
-                                        width: "150px",
-                                        height: "150px"
+                                        width: "130px",
+                                        height: "130px"
                                     }}
                                 >
 
-                                    <h2 className="fw-bold mb-0">
-                                        {activePercentage}%
-                                    </h2>
+                                    <div>
 
-                                    <small className="text-muted">
-                                        Active
-                                    </small>
+                                        <h3 className="fw-bold text-success mb-0">
+                                            {Math.round(activePercentage)}%
+                                        </h3>
+
+                                        <small className="text-muted">
+                                            Active
+                                        </small>
+
+                                    </div>
 
                                 </div>
 
-                            </div>
+
+                                <div className="row mt-4">
+
+                                    <div className="col-6">
+
+                                        <h5 className="fw-bold text-success">
+                                            {stats.active_users}
+                                        </h5>
+
+                                        <small className="text-muted">
+                                            Active
+                                        </small>
+
+                                    </div>
 
 
-                            <div className="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+                                    <div className="col-6">
 
-                                <span>
-                                    <span className="badge bg-success me-2">
-                                        &nbsp;
-                                    </span>
-                                    Active
-                                </span>
+                                        <h5 className="fw-bold text-secondary">
+                                            {stats.inactive_users}
+                                        </h5>
 
-                                <strong>
-                                    {stats.active_users}
-                                </strong>
+                                        <small className="text-muted">
+                                            Inactive
+                                        </small>
 
-                            </div>
+                                    </div>
 
-
-                            <div className="d-flex justify-content-between align-items-center">
-
-                                <span>
-                                    <span className="badge bg-danger me-2">
-                                        &nbsp;
-                                    </span>
-                                    Inactive
-                                </span>
-
-                                <strong>
-                                    {stats.inactive_users}
-                                </strong>
+                                </div>
 
                             </div>
 
@@ -584,9 +593,9 @@ function AdminDashboard() {
             </div>
 
 
-            {/* ========================= */}
-            {/* QUICK ACTIONS */}
-            {/* ========================= */}
+            {/* ========================================
+                QUICK ACTIONS
+            ======================================== */}
 
             <div className="card border-0 shadow-sm mt-4">
 
@@ -598,10 +607,13 @@ function AdminDashboard() {
 
                     <div className="row g-3">
 
+
+                        {/* MANAGE USERS */}
+
                         <div className="col-md-4">
 
-                            <a
-                                href="/admin/users"
+                            <Link
+                                to="/admin/users"
                                 className="btn btn-primary w-100 py-3"
                             >
 
@@ -609,15 +621,17 @@ function AdminDashboard() {
 
                                 Manage Users
 
-                            </a>
+                            </Link>
 
                         </div>
 
 
+                        {/* MANAGE TEACHERS */}
+
                         <div className="col-md-4">
 
-                            <a
-                                href="/admin/users"
+                            <Link
+                                to="/admin/users?role=teacher"
                                 className="btn btn-outline-success w-100 py-3"
                             >
 
@@ -625,15 +639,17 @@ function AdminDashboard() {
 
                                 Manage Teachers
 
-                            </a>
+                            </Link>
 
                         </div>
 
 
+                        {/* MANAGE STUDENTS */}
+
                         <div className="col-md-4">
 
-                            <a
-                                href="/admin/users"
+                            <Link
+                                to="/admin/users?role=student"
                                 className="btn btn-outline-info w-100 py-3"
                             >
 
@@ -641,7 +657,7 @@ function AdminDashboard() {
 
                                 Manage Students
 
-                            </a>
+                            </Link>
 
                         </div>
 
@@ -652,6 +668,7 @@ function AdminDashboard() {
             </div>
 
         </div>
+
     );
 }
 

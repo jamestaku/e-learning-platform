@@ -1,7 +1,10 @@
 import API_URL from "../../api";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 function Users() {
+
+    const [searchParams] = useSearchParams();
 
     const [users, setUsers] = useState([]);
     const [search, setSearch] = useState("");
@@ -11,11 +14,33 @@ function Users() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
+
     // ========================================
     // GET TOKEN
     // ========================================
 
     const token = localStorage.getItem("token");
+
+
+    // ========================================
+    // READ ROLE FILTER FROM URL
+    // ========================================
+
+    useEffect(() => {
+
+        const role = searchParams.get("role");
+
+        if (role === "teacher" || role === "student") {
+
+            setRoleFilter(role);
+
+        } else {
+
+            setRoleFilter("all");
+
+        }
+
+    }, [searchParams]);
 
 
     // ========================================
@@ -33,6 +58,7 @@ function Users() {
                 `${API_URL}/api/users/admin/all`,
                 {
                     method: "GET",
+
                     headers: {
                         "Authorization": `Bearer ${token}`
                     }
@@ -46,6 +72,7 @@ function Users() {
                 throw new Error(
                     data.message || "Failed to load users"
                 );
+
             }
 
             setUsers(data.users || []);
@@ -62,7 +89,9 @@ function Users() {
         } finally {
 
             setLoading(false);
+
         }
+
     };
 
 
@@ -122,6 +151,7 @@ function Users() {
                     data.message ||
                     `Failed to ${action} user`
                 );
+
             }
 
             // Update the user immediately
@@ -144,7 +174,9 @@ function Users() {
             );
 
             alert(error.message);
+
         }
+
     };
 
 
@@ -183,6 +215,7 @@ function Users() {
                     data.message ||
                     "Failed to delete user"
                 );
+
             }
 
             // Remove user from the table
@@ -200,7 +233,9 @@ function Users() {
             );
 
             alert(error.message);
+
         }
+
     };
 
 
@@ -235,6 +270,7 @@ function Users() {
             matchesRole &&
             matchesStatus
         );
+
     });
 
 
@@ -247,8 +283,10 @@ function Users() {
         return (
             <div className="container-fluid p-4">
 
-                <div className="d-flex justify-content-center align-items-center"
-                    style={{ minHeight: "300px" }}>
+                <div
+                    className="d-flex justify-content-center align-items-center"
+                    style={{ minHeight: "300px" }}
+                >
 
                     <div className="text-center">
 
@@ -268,6 +306,7 @@ function Users() {
 
             </div>
         );
+
     }
 
 
@@ -325,6 +364,8 @@ function Users() {
 
             <div className="row g-3 mb-4">
 
+                {/* Total Users */}
+
                 <div className="col-md-4">
 
                     <div className="card border-0 shadow-sm">
@@ -357,6 +398,8 @@ function Users() {
 
                 </div>
 
+
+                {/* Teachers */}
 
                 <div className="col-md-4">
 
@@ -395,6 +438,8 @@ function Users() {
 
                 </div>
 
+
+                {/* Students */}
 
                 <div className="col-md-4">
 
@@ -554,7 +599,12 @@ function Users() {
                     <div className="d-flex justify-content-between align-items-center">
 
                         <h5 className="mb-0 fw-bold">
-                            All Users
+                            {roleFilter === "teacher"
+                                ? "Teachers"
+                                : roleFilter === "student"
+                                    ? "Students"
+                                    : "All Users"
+                            }
                         </h5>
 
                         <span className="badge bg-secondary">
@@ -676,15 +726,21 @@ function Users() {
                                                     {user.role === "teacher" ? (
 
                                                         <span className="badge bg-success">
+
                                                             <i className="fas fa-chalkboard-teacher me-1"></i>
+
                                                             Teacher
+
                                                         </span>
 
                                                     ) : (
 
                                                         <span className="badge bg-info">
+
                                                             <i className="fas fa-user-graduate me-1"></i>
+
                                                             Student
+
                                                         </span>
 
                                                     )}
@@ -697,15 +753,21 @@ function Users() {
                                                     {user.status === "active" ? (
 
                                                         <span className="badge bg-success">
+
                                                             <i className="fas fa-check-circle me-1"></i>
+
                                                             Active
+
                                                         </span>
 
                                                     ) : (
 
                                                         <span className="badge bg-secondary">
+
                                                             <i className="fas fa-times-circle me-1"></i>
+
                                                             Inactive
+
                                                         </span>
 
                                                     )}

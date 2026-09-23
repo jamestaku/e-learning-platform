@@ -18,6 +18,8 @@ function Courses() {
 
         try {
 
+            setLoading(true);
+
             const [coursesResponse, enrolledResponse] =
                 await Promise.all([
 
@@ -78,7 +80,11 @@ function Courses() {
             setMyCourses(
                 enrolledData.courses
             );
-            console.log("MY COURSES DATA:", enrolledData.courses);
+
+            console.log(
+                "MY COURSES DATA:",
+                enrolledData.courses
+            );
 
 
         } catch (error) {
@@ -115,6 +121,10 @@ function Courses() {
 
     };
 
+
+    // ==========================================
+    // ENROL IN COURSE
+    // ==========================================
 
     const handleEnroll = async (courseId) => {
 
@@ -176,6 +186,89 @@ function Courses() {
     };
 
 
+    // ==========================================
+    // UNENROL FROM COURSE
+    // ==========================================
+
+    const handleUnenrol = async (
+        courseId,
+        courseTitle
+    ) => {
+
+        const confirmed = window.confirm(
+            `Are you sure you want to unenrol from "${courseTitle}"?`
+        );
+
+
+        if (!confirmed) {
+            return;
+        }
+
+
+        setMessage("Unenrolling...");
+
+
+        try {
+
+            const response = await fetch(
+                `${API_URL}/api/enrollments/${courseId}`,
+                {
+                    method: "DELETE",
+
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                setMessage(
+                    data.message ||
+                    "Unable to unenrol from the course"
+                );
+
+                return;
+            }
+
+
+            // Remove the course immediately
+            // from the enrolled courses list
+
+            setMyCourses(prev =>
+                prev.filter(
+                    course =>
+                        course.course_id !== courseId
+                )
+            );
+
+
+            setMessage(
+                "Successfully unenrolled from the course."
+            );
+
+
+        } catch (error) {
+
+            console.error(
+                "Unenrol error:",
+                error
+            );
+
+            setMessage(
+                "Unable to connect to the server."
+            );
+
+        }
+
+    };
+
+
     return (
 
         <div className="courses-page">
@@ -219,7 +312,9 @@ function Courses() {
             {message && (
 
                 <div className="course-message">
+
                     {message}
+
                 </div>
 
             )}
@@ -336,15 +431,50 @@ function Courses() {
                                     </span>
 
 
-                                   <button
-    className="open-course-btn"
-    onClick={() => {
-        console.log("OPENING COURSE:", course.course_id);
-        navigate(`/student/courses/${course.course_id}`);
-    }}
->
-    Open Course
-</button>
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            gap: "8px",
+                                            alignItems: "center"
+                                        }}
+                                    >
+
+                                        {/* OPEN COURSE */}
+
+                                        <button
+                                            className="open-course-btn"
+                                            onClick={() => {
+
+                                                console.log(
+                                                    "OPENING COURSE:",
+                                                    course.course_id
+                                                );
+
+                                                navigate(
+                                                    `/student/courses/${course.course_id}`
+                                                );
+
+                                            }}
+                                        >
+                                            Open Course
+                                        </button>
+
+
+                                        {/* UNENROL */}
+
+                                        <button
+                                            className="unenrol-course-btn"
+                                            onClick={() =>
+                                                handleUnenrol(
+                                                    course.course_id,
+                                                    course.title
+                                                )
+                                            }
+                                        >
+                                            Unenrol
+                                        </button>
+
+                                    </div>
 
                                 </div>
 
@@ -494,4 +624,3 @@ function Courses() {
 }
 
 export default Courses;
-

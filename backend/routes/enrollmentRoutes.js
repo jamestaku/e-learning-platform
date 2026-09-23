@@ -187,4 +187,66 @@ router.get(
 );
 
 
+// ==========================================
+// UNENROL FROM A COURSE - STUDENT ONLY
+// DELETE /api/enrollments/:courseId
+// ==========================================
+
+router.delete(
+    "/:courseId",
+    authenticateToken,
+    requireRole("student"),
+    async (req, res) => {
+
+        try {
+
+            const { courseId } = req.params;
+
+            // Check if the student is enrolled
+            const enrollment = await pool.query(
+                `SELECT id
+                 FROM enrollments
+                 WHERE student_id = $1
+                 AND course_id = $2`,
+                [
+                    req.user.id,
+                    courseId
+                ]
+            );
+
+            if (enrollment.rows.length === 0) {
+                return res.status(404).json({
+                    message: "You are not enrolled in this course"
+                });
+            }
+
+            // Remove only this student's enrolment
+            await pool.query(
+                `DELETE FROM enrollments
+                 WHERE student_id = $1
+                 AND course_id = $2`,
+                [
+                    req.user.id,
+                    courseId
+                ]
+            );
+
+            res.json({
+                message: "Successfully unenrolled from the course"
+            });
+
+        } catch (error) {
+
+            console.error("Unenrol course error:", error);
+
+            res.status(500).json({
+                message: "Internal server error"
+            });
+
+        }
+
+    }
+);
+
+
 module.exports = router;
